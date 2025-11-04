@@ -1,0 +1,968 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  background-color: #f5f7fa;
+  color: #333;
+  /* iOS Dynamic Type support */
+  font-size: 17px; /* iOS Body text size */
+  line-height: 1.41176; /* 24pt line height */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.App {
+  min-height: 100vh;
+  padding: 16px; /* 8pt grid: 20→16 */
+  /* iOS Safe Area Support */
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+/* Loading Screen Styles */
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-left: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-screen p {
+  color: #718096;
+  font-size: 16px;
+}
+
+/* Kanban Board Styles */
+.kanban-board {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px; /* 8pt grid: 30→32 */
+  padding: 16px 0; /* 8pt grid: 20→16 */
+  /* iOS Safe Area Support for horizontal spacing */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.board-header h1 {
+  font-size: 34px; /* iOS Large Title */
+  color: #2d3748;
+  font-weight: 700;
+  letter-spacing: 0.374px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* 8pt grid: 12→16 */
+  flex-wrap: wrap;
+}
+
+.add-task-button,
+.add-event-button,
+.sync-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  min-height: 44px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.add-task-button {
+  background: #ff6801;
+  color: white;
+}
+
+.add-task-button:hover {
+  background: #e65f01;
+  transform: translateY(-1px);
+}
+
+.add-event-button {
+  background: #48bb78;
+  color: white;
+}
+
+.add-event-button:hover {
+  background: #38a169;
+  transform: translateY(-1px);
+}
+
+.sync-button {
+  background: #ed8936;
+  color: white;
+}
+
+.sync-button:hover:not(:disabled) {
+  background: #dd6b20;
+  transform: translateY(-1px);
+}
+
+.sync-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sync-button .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.columns-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(304px, 1fr)); /* 8pt grid: 300→304 */
+  gap: 16px; /* 8pt grid: 20→16 */
+}
+
+/* Column Styles */
+.column {
+  background: white;
+  border-radius: 12px; /* 8pt grid: keeping 12 as acceptable */
+  padding: 16px; /* 8pt grid: 20→16 */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  border: 1px solid #e2e8f0;
+}
+
+.column-title {
+  font-size: 22px; /* iOS Title 2 */
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+  letter-spacing: 0.35px;
+}
+
+.task-list {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-list.drag-over {
+  background-color: #f7fafc;
+  border: 2px dashed #cbd5e0;
+  border-radius: 8px;
+}
+
+.empty-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #a0aec0;
+  font-style: italic;
+  border: 2px dashed #e2e8f0;
+  border-radius: 8px;
+  background: #f7fafc;
+}
+
+/* Task Card Styles */
+.task-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: grab;
+  position: relative;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-card.has-event {
+  border-left: 4px solid #ff6801;
+  background: linear-gradient(135deg, #fff 0%, #fff5f0 100%);
+}
+
+.task-card:hover {
+  border-color: #cbd5e0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.task-card:active {
+  cursor: grabbing;
+}
+
+.task-card.dragging {
+  opacity: 0.8;
+  transform: rotate(5deg);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.task-content {
+  font-size: 17px; /* iOS Body */
+  line-height: 1.41176;
+  color: #4a5568;
+  font-weight: 400;
+  letter-spacing: -0.41px;
+}
+
+.event-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(72, 187, 120, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(72, 187, 120, 0.2);
+}
+
+.event-time,
+.event-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px; /* iOS Footnote */
+  color: #2d3748;
+  letter-spacing: -0.08px;
+}
+
+.event-time svg,
+.event-location svg {
+  color: #48bb78;
+}
+
+.event-description {
+  font-size: 13px; /* iOS Footnote */
+  color: #718096;
+  font-style: italic;
+  max-height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.08px;
+}
+
+.event-indicator {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  color: #48bb78;
+}
+
+.task-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: auto;
+}
+
+.edit-event-button,
+.delete-button {
+  background: transparent;
+  border: none;
+  color: #a0aec0;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-event-button:hover {
+  color: #48bb78;
+  background: rgba(72, 187, 120, 0.1);
+}
+
+.delete-button:hover {
+  color: #e53e3e;
+  background: #fed7d7;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  /* iOS Safe Area Support */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px; /* 8pt grid: acceptable */
+  padding: 24px; /* 8pt grid: ✓ */
+  max-width: 504px; /* 8pt grid: 500→504 */
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 32px rgba(0, 0, 0, 0.1); /* 8pt grid: 20→24, 25→32 */
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px; /* 8pt grid: 20→24 */
+}
+
+.modal-header h2 {
+  font-size: 28px; /* iOS Title 1 */
+  font-weight: 700;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.36px;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #a0aec0;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  color: #718096;
+  background: #f7fafc;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px; /* 8pt grid: 20→24 */
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 15px; /* iOS Subheadline */
+  letter-spacing: -0.24px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 17px; /* iOS Body */
+  font-family: inherit;
+  transition: border-color 0.2s;
+  resize: vertical;
+  width: 100%;
+  letter-spacing: -0.41px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #ff6801;
+  box-shadow: 0 0 0 3px rgba(255, 104, 1, 0.1);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.checkbox-group {
+  flex-direction: row;
+  align-items: center;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.modal-actions button {
+  min-height: 44px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.modal-actions button[type="button"] {
+  background: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.modal-actions button[type="button"]:hover {
+  background: #edf2f7;
+}
+
+.modal-actions button[type="submit"],
+.modal-actions button.primary {
+  background: #ff6801;
+  color: white;
+}
+
+.modal-actions button[type="submit"]:hover,
+.modal-actions button.primary:hover {
+  background: #e65f01;
+  transform: translateY(-1px);
+}
+
+.modal-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.error-message {
+  background: #fed7d7;
+  color: #c53030;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #feb2b2;
+  font-size: 0.875rem;
+}
+
+.error-banner,
+.loading-banner {
+  background: #fed7d7;
+  color: #c53030;
+  padding: 16px; /* 8pt grid: 12→16 */
+  border-radius: 8px; /* 8pt grid: ✓ */
+  margin-bottom: 16px; /* 8pt grid: 20→16 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.loading-banner {
+  background: #bee3f8;
+  color: #2c5282;
+}
+
+.error-banner button {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+}
+
+/* Auth Section Styles */
+.auth-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 0.75rem;
+}
+
+.user-email {
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.google-connected {
+  color: #48bb78;
+  font-size: 0.65rem;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.auth-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auth-button.login {
+  background: #4285f4;
+  color: white;
+}
+
+.auth-button.login:hover {
+  background: #3367d6;
+}
+
+.auth-button.refresh {
+  background: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.auth-button.refresh:hover {
+  background: #edf2f7;
+}
+
+.auth-button.logout {
+  background: #fed7d7;
+  color: #c53030;
+  border: 1px solid #feb2b2;
+}
+
+.auth-button.logout:hover {
+  background: #fbb6ce;
+}
+
+.loading,
+.error {
+  font-size: 0.75rem;
+  padding: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .columns-container {
+    grid-template-columns: 1fr;
+  }
+
+  .board-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .board-header h1 {
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .header-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .auth-section {
+    align-items: center;
+    width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    margin: 20px;
+    width: calc(100% - 40px);
+  }
+}
+
+/* ========================================
+   ⭐ Master Events Panel Styles
+   ======================================== */
+
+.master-events-panel {
+  background: white;
+  border-radius: 12px; /* 8pt grid: acceptable */
+  padding: 24px; /* 8pt grid: ✓ */
+  margin-bottom: 24px; /* 8pt grid: ✓ */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.07); /* 8pt grid: 6→8 */
+  border: 1px solid #e2e8f0;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px; /* 8pt grid: 20→16 */
+  padding-bottom: 16px; /* 8pt grid: 12→16 */
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* 8pt grid: 12→16 */
+}
+
+.panel-title h2 {
+  font-size: 28px; /* iOS Title 1 */
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+  letter-spacing: 0.36px;
+}
+
+.panel-count {
+  font-size: 15px; /* iOS Subheadline */
+  color: #718096;
+  font-weight: 500;
+  letter-spacing: -0.24px;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.refresh-master-button,
+.collapse-panel-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refresh-master-button {
+  background: #ff6801;
+  color: white;
+}
+
+.refresh-master-button:hover:not(:disabled) {
+  background: #e65f01;
+}
+
+.collapse-panel-button {
+  background: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.collapse-panel-button:hover {
+  background: #edf2f7;
+}
+
+.panel-loading,
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px; /* 8pt grid: ✓ */
+  color: #718096;
+  gap: 16px; /* 8pt grid: 12→16 */
+}
+
+.sync-now-button {
+  margin-top: 16px; /* 8pt grid: 12→16 */
+  min-height: 44px;
+  padding: 12px 16px; /* 8pt grid: 20→16 */
+  background: #ff6801;
+  color: white;
+  border: none;
+  border-radius: 8px; /* 8pt grid: ✓ */
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sync-now-button:hover {
+  background: #e65f01;
+  transform: translateY(-1px);
+}
+
+.master-events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ========================================
+   ⭐ Master Event Card Styles
+   ======================================== */
+
+.master-event-card {
+  background: #ff6801;
+  color: white;
+  border-radius: 10px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(255, 104, 1, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.master-event-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(255, 104, 1, 0.4);
+}
+
+.master-event-card.drag-over {
+  box-shadow: 0 0 0 3px #48bb78, 0 8px 20px rgba(72, 187, 120, 0.4);
+  transform: scale(1.03);
+  background: #48bb78;
+}
+
+.master-event-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.master-event-id {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.master-event-title {
+  font-size: 17px; /* iOS Headline */
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.41176;
+  letter-spacing: -0.41px;
+}
+
+.master-event-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.master-event-description {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  line-height: 1.4;
+  max-height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin: 0;
+}
+
+.master-event-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.master-event-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.master-event-hint {
+  font-size: 0.7rem;
+  opacity: 0.75;
+  font-style: italic;
+  text-align: center;
+}
+
+/* ========================================
+   ⭐ Show Master Panel Button
+   ======================================== */
+
+.show-master-panel-button {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px; /* 8pt grid: acceptable */
+  background: #ff6801;
+  color: white;
+  border: none;
+  border-radius: 8px; /* 8pt grid: ✓ */
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 16px; /* 8pt grid: 20→16 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* 8pt grid: ✓ */
+  box-shadow: 0 2px 8px rgba(255, 104, 1, 0.2);
+}
+
+.show-master-panel-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 104, 1, 0.3);
+}
+
+/* ========================================
+   ⭐ Task Card Event Type Badges
+   ======================================== */
+
+.task-card.personal-event {
+  border-left: 4px solid #48bb78;
+  background: linear-gradient(135deg, #fff 0%, #f0fff4 100%);
+}
+
+.task-card.master-event {
+  border-left: 4px solid #ff6801;
+  background: linear-gradient(135deg, #fff 0%, #fff5f0 100%);
+}
+
+.event-type-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.event-type-badge.personal {
+  background: #48bb78;
+  color: white;
+}
+
+.event-type-badge.master {
+  background: #ff6801;
+  color: white;
+}
+
+/* ========================================
+   ⭐ Sync Master Button (Header)
+   ======================================== */
+
+.sync-master-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 12px 16px;
+  background: #000000;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.sync-master-button:hover:not(:disabled) {
+  background: #333333;
+  transform: translateY(-1px);
+}
+
+.sync-master-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   ⭐ Responsive Design for Master Events
+   ======================================== */
+
+@media (max-width: 768px) {
+  .master-events-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .panel-actions {
+    justify-content: space-between;
+  }
+}
