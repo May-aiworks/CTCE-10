@@ -1,17 +1,27 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { AuthStatus, User } from '../types';
-import { authApi } from '../services/api';
+/**
+ * 前端 Google OAuth 認證 Context
+ * 使用 Google Identity Services，不依賴後端
+ */
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import {
+  loadGoogleIdentityServices,
+  initGoogleLogin,
+  getAuthStatus,
+  logout as googleLogout,
+  GoogleAuthStatus,
+  getTokenExpiryInfo,
+} from '../services/googleAuth';
 
 interface AuthContextType {
-  authStatus: AuthStatus | null;
-  user: User | null;
+  authStatus: GoogleAuthStatus;
   loading: boolean;
   error: string | null;
-  login: () => Promise<void>;
-  logout: () => Promise<void>;
-  refreshToken: () => Promise<void>;
-  revokeGoogleAccess: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  login: () => void;
+  logout: () => void;
+  isAuthenticated: boolean;
+  userEmail: string | null;
+  userName: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,123 +39,90 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [authStatus, setAuthStatus] = useState<GoogleAuthStatus>(getAuthStatus());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const checkAuth = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('🔍 Checking authentication status...');
-      const status = await authApi.checkAuthStatus();
-      console.log('📊 Auth status response:', status);
-      setAuthStatus(status);
-      setUser(status.user || null);
+  // 初始化：載入 Google Identity Services SDK
+  useEffect(() => {
+    const init = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      if (status.is_authenticated) {
-        console.log('✅ User is authenticated, should redirect to Kanban');
-      } else {
-        console.log('❌ User is not authenticated');
+        console.log('🔄 Loading Google Identity Services SDK...');
+        await loadGoogleIdentityServices();
+        console.log('✅ Google Identity Services SDK loaded');
+
+        // 檢查本地認證狀態
+        const status = getAuthStatus();
+        setAuthStatus(status);
+
+        if (status.isAuthenticated) {
+          console.log('✅ User authenticated:', status.userEmail);
+
+          // 檢查 Token 是否即將過期
+          const expiryInfo = getTokenExpiryInfo();
+          if (expiryInfo.isExpiringSoon) {
+            console.warn(`⚠️ Token expiring in ${expiryInfo.expiresInMinutes} minutes`);
+          }
+        } else {
+          console.log('ℹ️ User not authenticated');
+        }
+      } catch (err) {
+        console.error('❌ Failed to initialize Google Auth:', err);
+        setError(err instanceof Error ? err.message : 'Initialization failed');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('🚨 Authentication check failed:', err);
-      setError(err instanceof Error ? err.message : 'Authentication check failed');
-      setAuthStatus({ is_authenticated: false });
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    init();
   }, []);
 
-  const login = async () => {
-    try {
-      setError(null);
-      const { authorization_url } = await authApi.login();
-      window.location.href = authorization_url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-    }
-  };
+  // 登入函數
+  const login = () => {
+    setError(null);
+    console.log('🔐 Initiating Google Login...');
 
-  const logout = async () => {
-    try {
-      setError(null);
-      await authApi.logout();
-      setAuthStatus({ is_authenticated: false });
-      setUser(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Logout failed');
-    }
-  };
-
-  const refreshToken = useCallback(async () => {
-    try {
-      setError(null);
-      await authApi.refreshToken();
-      await checkAuth();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Token refresh failed');
-    }
-  }, [checkAuth]);
-
-  const revokeGoogleAccess = async () => {
-    try {
-      setError(null);
-      await authApi.revokeGoogleAccess();
-      setAuthStatus({ is_authenticated: false });
-      setUser(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Revoke access failed');
-    }
-  };
-
-  useEffect(() => {
-    // Check for OAuth success parameters in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const authSuccess = urlParams.get('auth');
-    const tokenId = urlParams.get('token_id');
-
-    if (authSuccess === 'success' && tokenId) {
-      console.log('OAuth success detected, checking auth status...');
-      // Clean up URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
-    checkAuth();
-  }, []);
-
-  // Auto-refresh token when it's about to expire
-  useEffect(() => {
-    if (user?.token_expires_at) {
-      const expiresAt = new Date(user.token_expires_at);
-      const now = new Date();
-      const timeUntilExpiry = expiresAt.getTime() - now.getTime();
-
-      // Refresh token 5 minutes before expiry
-      const refreshTime = timeUntilExpiry - 5 * 60 * 1000;
-
-      if (refreshTime > 0) {
-        const timeoutId = setTimeout(() => {
-          refreshToken();
-        }, refreshTime);
-
-        return () => clearTimeout(timeoutId);
+    initGoogleLogin(
+      (status) => {
+        console.log('✅ Login successful:', status.userEmail);
+        setAuthStatus(status);
+        setError(null);
+      },
+      (errorMsg) => {
+        console.error('❌ Login failed:', errorMsg);
+        setError(errorMsg);
       }
-    }
-  }, [user?.token_expires_at, refreshToken]);
+    );
+  };
+
+  // 登出函數
+  const logout = () => {
+    console.log('🚪 Logging out...');
+    googleLogout(() => {
+      console.log('✅ Logged out successfully');
+      setAuthStatus({
+        isAuthenticated: false,
+        accessToken: null,
+        userEmail: null,
+        userName: null,
+        expiresAt: null,
+      });
+      setError(null);
+    });
+  };
 
   const value: AuthContextType = {
     authStatus,
-    user,
     loading,
     error,
     login,
     logout,
-    refreshToken,
-    revokeGoogleAccess,
-    checkAuth,
+    isAuthenticated: authStatus.isAuthenticated,
+    userEmail: authStatus.userEmail,
+    userName: authStatus.userName,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
