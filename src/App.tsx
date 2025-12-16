@@ -6,8 +6,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './App.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { authStatus, loading } = useAuth();
-  
+  const { isAuthenticated, loading } = useAuth();
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -16,11 +16,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
       </div>
     );
   }
-  
-  if (!authStatus?.is_authenticated) {
+
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return <>{children}</>;
 };
 

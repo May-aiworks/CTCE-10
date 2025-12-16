@@ -102,7 +102,7 @@ const DroppableCourseCard: React.FC<{ course: MasterEvent }> = ({ course }) => {
 };
 
 export const WeeklyCategorization: React.FC = () => {
-  const { authStatus } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [weekOffset, setWeekOffset] = useState<number>(-1); // Default to last week
   const [lastWeekEvents, setLastWeekEvents] = useState<CalendarEvent[]>([]);
   const [masterEvents, setMasterEvents] = useState<MasterEvent[]>([]);
@@ -124,7 +124,7 @@ export const WeeklyCategorization: React.FC = () => {
 
   // Load weekly personal events based on weekOffset
   const loadLastWeekEvents = useCallback(async () => {
-    if (!authStatus?.is_authenticated) return;
+    if (!isAuthenticated) return;
 
     try {
       setLoading(true);
@@ -140,11 +140,11 @@ export const WeeklyCategorization: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [authStatus?.is_authenticated, weekOffset]);
+  }, [isAuthenticated, weekOffset]);
 
   // Load master events (courses)
   const loadMasterEvents = useCallback(async () => {
-    if (!authStatus?.is_authenticated) return;
+    if (!isAuthenticated) return;
 
     try {
       const response = await masterEventsApi.getMasterEvents();
@@ -154,11 +154,11 @@ export const WeeklyCategorization: React.FC = () => {
     } catch (err) {
       console.error('❌ Failed to load master events:', err);
     }
-  }, [authStatus?.is_authenticated]);
+  }, [isAuthenticated]);
 
   // Load categorizations (using getCalendarData as recommended)
   const loadCategorizations = useCallback(async () => {
-    if (!authStatus?.is_authenticated) return;
+    if (!isAuthenticated) return;
 
     try {
       const response = await dndApi.getCalendarData();
@@ -168,7 +168,7 @@ export const WeeklyCategorization: React.FC = () => {
     } catch (err) {
       console.error('❌ Failed to load categorizations:', err);
     }
-  }, [authStatus?.is_authenticated]);
+  }, [isAuthenticated]);
 
   // Refresh all data (independently to avoid one failure blocking others)
   const handleRefresh = useCallback(async () => {
@@ -182,10 +182,10 @@ export const WeeklyCategorization: React.FC = () => {
 
   // Initial load and reload when week changes
   useEffect(() => {
-    if (authStatus?.is_authenticated) {
+    if (isAuthenticated) {
       handleRefresh();
     }
-  }, [authStatus?.is_authenticated, weekOffset, handleRefresh]);
+  }, [isAuthenticated, weekOffset, handleRefresh]);
 
   // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
@@ -273,7 +273,7 @@ export const WeeklyCategorization: React.FC = () => {
         </div>
         <div className="header-right">
           <AuthButton />
-          {authStatus?.is_authenticated && (
+          {isAuthenticated && (
             <>
               {/* Week Navigation */}
               <div className="week-navigation">
