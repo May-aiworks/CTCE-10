@@ -1,23 +1,19 @@
-import React, { useState } from 'react';
-import { LogIn, Lock, Shield } from 'lucide-react';
-import { authApi } from '../services/api';
+/**
+ * 登入頁面
+ * 使用 Google Identity Services 前端 OAuth
+ */
+
+import React from 'react';
+import { LogIn, Shield, Calendar, FileSpreadsheet } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import './LoginPage.css';
 
 export const LoginPage: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { login, loading, error } = useAuth();
 
-  const handleLogin = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const { authorization_url } = await authApi.login();
-      window.location.href = authorization_url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
-      setLoading(false);
-    }
+  const handleLogin = () => {
+    console.log('👆 User clicked login button');
+    login();
   };
 
   return (
@@ -27,8 +23,8 @@ export const LoginPage: React.FC = () => {
           <div className="login-icon">
             <Shield size={48} />
           </div>
-          <h1>Welcome to Kanban Board</h1>
-          <p>Please authorize your account to continue</p>
+          <h1>時數記錄系統</h1>
+          <p>請使用 Google 帳號登入以開始使用</p>
         </div>
 
         <div className="login-content">
@@ -44,18 +40,32 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
           >
             <LogIn size={20} />
-            {loading ? 'Authorizing...' : 'Authorize Login'}
+            {loading ? '載入中...' : '使用 Google 登入'}
           </button>
 
           <div className="login-info">
             <div className="info-item">
-              <Lock size={16} />
-              <span>Secure OAuth 2.0 Authentication</span>
+              <Calendar size={16} />
+              <span>讀取 Google Calendar 行程</span>
+            </div>
+            <div className="info-item">
+              <FileSpreadsheet size={16} />
+              <span>同步課程總表資料</span>
             </div>
             <p className="info-text">
-              You will be redirected to authorize your Google account for calendar integration.
+              登入後將會請求以下權限：
+              <br />
+              • 讀取您的 Google Calendar 事件
+              <br />
+              • 讀取 Google Sheets 課程資料
+              <br />
+              • 取得您的 Email 資訊
             </p>
           </div>
+        </div>
+
+        <div className="login-footer">
+          <p>使用安全的 Google OAuth 2.0 認證</p>
         </div>
       </div>
     </div>
