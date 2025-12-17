@@ -26,7 +26,7 @@ export interface CategorizationData {
  * 取得所有歸類
  */
 export const getAllCategorizations = (): CategorizationData[] => {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = sessionStorage.getItem(STORAGE_KEY);
   if (!stored) {
     return [];
   }
@@ -44,7 +44,7 @@ export const getAllCategorizations = (): CategorizationData[] => {
  * 儲存歸類
  */
 const saveCategorizations = (categorizations: CategorizationData[]): void => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(categorizations));
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(categorizations));
 };
 
 /**
@@ -147,7 +147,7 @@ export const getCategorizationsByMasterEventId = (
  * 清除所有歸類
  */
 export const clearAllCategorizations = (): void => {
-  localStorage.removeItem(STORAGE_KEY);
+  sessionStorage.removeItem(STORAGE_KEY);
   console.log('🗑️ Cleared all categorizations');
 };
 

@@ -354,7 +354,7 @@ export const WeeklyCategorization: React.FC = () => {
       const updatedCategorizations = categorizations.filter(
         cat => cat.masterEventId !== courseId
       );
-      localStorage.setItem('event_categorizations', JSON.stringify(updatedCategorizations));
+      sessionStorage.setItem('event_categorizations', JSON.stringify(updatedCategorizations));
       setCategorizations(updatedCategorizations);
 
       console.log(`🗑️ Removed course ${course.title} and ${recordCount} categorizations`);

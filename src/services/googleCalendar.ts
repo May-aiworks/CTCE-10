@@ -402,7 +402,7 @@ export interface CreateLocalEventRequest {
  * 取得所有本地 Personal Events
  */
 export const getLocalPersonalEvents = (): NormalizedEvent[] => {
-  const stored = localStorage.getItem(LOCAL_EVENTS_KEY);
+  const stored = sessionStorage.getItem(LOCAL_EVENTS_KEY);
   if (!stored) {
     return [];
   }
@@ -420,7 +420,7 @@ export const getLocalPersonalEvents = (): NormalizedEvent[] => {
  * 儲存本地 Personal Events
  */
 const saveLocalPersonalEvents = (events: NormalizedEvent[]): void => {
-  localStorage.setItem(LOCAL_EVENTS_KEY, JSON.stringify(events));
+  sessionStorage.setItem(LOCAL_EVENTS_KEY, JSON.stringify(events));
 };
 
 /**
@@ -526,7 +526,7 @@ export const deleteLocalPersonalEvent = (eventId: string): boolean => {
  * 清除所有本地 Personal Events
  */
 export const clearLocalPersonalEvents = (): void => {
-  localStorage.removeItem(LOCAL_EVENTS_KEY);
+  sessionStorage.removeItem(LOCAL_EVENTS_KEY);
   console.log('🗑️ Cleared all local personal events');
 };
 
