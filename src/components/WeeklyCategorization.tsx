@@ -422,6 +422,14 @@ export const WeeklyCategorization: React.FC = () => {
                 ))
               )}
             </div>
+            <div className="course-menu-footer">
+              <button
+                className="course-menu-ok-button"
+                onClick={() => setShowCourseMenu(false)}
+              >
+                完成勾選
+              </button>
+            </div>
           </div>
         </div>
       )}
