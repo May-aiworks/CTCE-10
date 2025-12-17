@@ -296,7 +296,15 @@ export const fetchAndNormalizeWeeklyEvents = async (
 }> => {
   const response = await getWeeklyCalendarEvents(weekOffset, calendarId);
 
-  const normalizedEvents = response.events.map(normalizeCalendarEvent);
+  // 過濾掉全天事件，然後正規化
+  const normalizedEvents = response.events
+    .filter(event => {
+      const { isAllDay } = parseEventTime(event);
+      return !isAllDay; // 只保留非全天事件
+    })
+    .map(normalizeCalendarEvent);
+
+  console.log(`📅 Filtered out all-day events: ${response.events.length} → ${normalizedEvents.length}`);
 
   // 儲存到 localStorage 快取
   const cacheKey = `calendar_events_week_${weekOffset}`;
