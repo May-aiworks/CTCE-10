@@ -227,7 +227,7 @@
   border-radius: 12px;
   padding: 20px 24px;
   transition: transform 0.2s, box-shadow 0.2s;
-  cursor: grab;
+  cursor: pointer;
   user-select: none;
 }
 
@@ -284,14 +284,28 @@
   cursor: pointer;
   min-height: 100px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   letter-spacing: -0.41px;
   position: relative;
+  gap: 8px;
 }
 
 .course-card-title {
   flex: 1;
+}
+
+.course-card-hint {
+  font-size: 12px;
+  color: #999;
+  font-weight: 400;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.course-card:hover .course-card-hint {
+  opacity: 1;
 }
 
 .course-card-remove {
@@ -348,6 +362,66 @@
   text-align: center;
   color: #888;
   font-size: 16px;
+}
+
+/* Events Section Grouping */
+.events-section {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 16px 0;
+  letter-spacing: 0.38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-section {
+  padding: 24px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  font-style: italic;
+}
+
+.section-events {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Categorized Group Styles */
+.categorized-group {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border-left: 4px solid #ff6801;
+}
+
+.group-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ff6801;
+  margin: 0 0 12px 0;
+  letter-spacing: 0;
+}
+
+.group-events {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.categorized-group .event-card {
+  background: white;
+  border: 1px solid #e0e0e0;
 }
 
 /* Submit Button */

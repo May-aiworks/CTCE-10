@@ -1,15 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  useDraggable,
-  useDroppable,
-} from '@dnd-kit/core';
 import { RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -17,7 +6,6 @@ import {
   NormalizedEvent,
   createLocalPersonalEvent,
   updateLocalPersonalEvent,
-  deleteLocalPersonalEvent,
   CreateLocalEventRequest,
   clearAllLocalOperations,
 } from '../services/googleCalendar';
@@ -25,7 +13,6 @@ import { getMasterEvents, MasterEvent } from '../services/masterEvents';
 import { getUserCourseCache } from '../services/appsScript';
 import {
   getAllCategorizations,
-  createCategorization as createCategorizationLocal,
   exportCategorizationsForSubmit,
   CategorizationData,
   getCategorizationsByMasterEventId
@@ -34,23 +21,11 @@ import { submitRecords, getCurrentWeek } from '../services/appsScript';
 import { AuthButton } from './AuthButton';
 import './WeeklyCategorization.css';
 
-// Draggable Event Card Component
-const DraggableEventCard: React.FC<{
+// Event Card Component (non-draggable in main view)
+const EventCard: React.FC<{
   event: NormalizedEvent;
   onDoubleClick: (event: NormalizedEvent) => void;
 }> = ({ event, onDoubleClick }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `personal-event-${event.id}`,
-  });
-
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        opacity: isDragging ? 0.5 : 1,
-        cursor: 'grab',
-      }
-    : { cursor: 'grab' };
-
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     const dateStr = date.toLocaleDateString('zh-TW', {
@@ -67,10 +42,6 @@ const DraggableEventCard: React.FC<{
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
       className="event-card"
       onDoubleClick={() => onDoubleClick(event)}
     >
@@ -89,31 +60,25 @@ const DraggableEventCard: React.FC<{
   );
 };
 
-// Droppable Course Card Component
-const DroppableCourseCard: React.FC<{
+// Course Card Component (double-click to open week view)
+const CourseCard: React.FC<{
   course: MasterEvent;
   onRemove: (courseId: string) => void;
-}> = ({ course, onRemove }) => {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `master-event-${course.id}`,
-  });
-
-  const style = isOver
-    ? {
-        backgroundColor: '#e3f2fd',
-        borderColor: '#2196f3',
-        transform: 'scale(1.05)',
-      }
-    : {};
-
+  onDoubleClick: (courseId: string) => void;
+}> = ({ course, onRemove, onDoubleClick }) => {
   const handleRemoveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onRemove(course.id);
   };
 
   return (
-    <div ref={setNodeRef} className="course-card" style={style}>
+    <div
+      className="course-card"
+      onDoubleClick={() => onDoubleClick(course.id)}
+      title="雙擊展開周視圖"
+    >
       <span className="course-card-title">{course.title}</span>
+      <div className="course-card-hint">雙擊展開</div>
       <button
         className="course-card-remove"
         onClick={handleRemoveClick}
@@ -134,21 +99,13 @@ export const WeeklyCategorization: React.FC = () => {
   const [categorizations, setCategorizations] = useState<CategorizationData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeEvent, setActiveEvent] = useState<NormalizedEvent | null>(null);
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [showCourseMenu, setShowCourseMenu] = useState(false);
   const [editingEvent, setEditingEvent] = useState<NormalizedEvent | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 3,
-      },
-    })
-  );
+  const [selectedCourseForWeekView, setSelectedCourseForWeekView] = useState<string | null>(null);
+  const [showWeekViewModal, setShowWeekViewModal] = useState(false);
 
   // Load weekly personal events from Google Calendar
   const loadLastWeekEvents = useCallback(async () => {
@@ -224,57 +181,6 @@ export const WeeklyCategorization: React.FC = () => {
       handleRefresh();
     }
   }, [isAuthenticated, weekOffset, handleRefresh]);
-
-  // Handle drag start
-  const handleDragStart = (event: DragStartEvent) => {
-    const eventId = event.active.id.toString().replace('personal-event-', '');
-    const draggedEvent = lastWeekEvents.find(e => e.id === eventId);
-    setActiveEvent(draggedEvent || null);
-  };
-
-  // Handle drag end
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveEvent(null);
-
-    if (!over) return;
-
-    const personalEventId = active.id.toString().replace('personal-event-', '');
-    const masterEventId = over.id.toString().replace('master-event-', '');
-
-    const personalEvent = lastWeekEvents.find(e => e.id === personalEventId);
-    const masterEvent = allMasterEvents.find(e => e.id === masterEventId);
-
-    if (!personalEvent || !masterEvent) return;
-
-    try {
-      console.log('🎯 拖放歸類:', {
-        personal: personalEvent.title,
-        master: masterEvent.title
-      });
-
-      const result = createCategorizationLocal(
-        personalEvent,
-        masterEvent,
-        `拖放歸類於 ${new Date().toLocaleString('zh-TW')}`
-      );
-
-      console.log('✅ 歸類成功:', result);
-
-      // Reload categorizations
-      loadCategorizations();
-
-      alert(
-        `✅ 歸類成功！\n\n` +
-        `個人行程: ${personalEvent.title}\n` +
-        `→ 課程: ${masterEvent.title}`
-      );
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : '歸類失敗';
-      console.error('❌ 歸類失敗:', errorMsg);
-      setError(errorMsg);
-    }
-  };
 
   // Handle submit
   const handleSubmit = async () => {
@@ -424,6 +330,12 @@ export const WeeklyCategorization: React.FC = () => {
     }
   };
 
+  // Handle double click on course card to open week view
+  const handleCourseDoubleClick = (courseId: string) => {
+    setSelectedCourseForWeekView(courseId);
+    setShowWeekViewModal(true);
+  };
+
   // Handle clear all local operations
   const handleClearAllOperations = () => {
     const localEventsCount = lastWeekEvents.filter(e =>
@@ -464,6 +376,21 @@ export const WeeklyCategorization: React.FC = () => {
   const coursesInProgress = allMasterEvents.filter(masterEvent =>
     selectedCourseIds.includes(masterEvent.id)
   );
+
+  // Group events into categorized and uncategorized
+  const uncategorizedEvents = lastWeekEvents.filter(
+    event => !categorizations.find(cat => cat.personalEventId === event.googleEventId)
+  );
+
+  const categorizedEventsByMaster = coursesInProgress.map(master => {
+    const relatedCategorizations = categorizations.filter(
+      cat => cat.masterEventId === master.id
+    );
+    const events = lastWeekEvents.filter(event =>
+      relatedCategorizations.find(cat => cat.personalEventId === event.googleEventId)
+    );
+    return { masterEvent: master, events, count: events.length };
+  }).filter(group => group.count > 0); // Only show masters with events
 
   return (
     <div className="weekly-categorization">
@@ -589,11 +516,6 @@ export const WeeklyCategorization: React.FC = () => {
           <p>Loading...</p>
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
           <div className="content-container">
             <div className="two-column-layout">
               {/* Left Column: Last Week's Schedule */}
@@ -614,13 +536,50 @@ export const WeeklyCategorization: React.FC = () => {
                       <p>No events found for this week</p>
                     </div>
                   ) : (
-                    lastWeekEvents.map(event => (
-                      <DraggableEventCard
-                        key={event.id}
-                        event={event}
-                        onDoubleClick={handleEventDoubleClick}
-                      />
-                    ))
+                    <>
+                      {/* Uncategorized Events Section */}
+                      <div className="events-section">
+                        <h3 className="section-title">📅 未歸類事件</h3>
+                        {uncategorizedEvents.length === 0 ? (
+                          <div className="empty-section">
+                            <p>所有事件都已歸類</p>
+                          </div>
+                        ) : (
+                          <div className="section-events">
+                            {uncategorizedEvents.map(event => (
+                              <EventCard
+                                key={event.id}
+                                event={event}
+                                onDoubleClick={handleEventDoubleClick}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Categorized Events Section */}
+                      {categorizedEventsByMaster.length > 0 && (
+                        <div className="events-section">
+                          <h3 className="section-title">🎯 已歸類事件</h3>
+                          {categorizedEventsByMaster.map(({ masterEvent, events, count }) => (
+                            <div key={masterEvent.id} className="categorized-group">
+                              <h4 className="group-title">
+                                [{masterEvent.title}] ({count})
+                              </h4>
+                              <div className="group-events">
+                                {events.map(event => (
+                                  <EventCard
+                                    key={event.id}
+                                    event={event}
+                                    onDoubleClick={handleEventDoubleClick}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -635,10 +594,11 @@ export const WeeklyCategorization: React.FC = () => {
                     </div>
                   ) : (
                     coursesInProgress.map(course => (
-                      <DroppableCourseCard
+                      <CourseCard
                         key={course.id}
                         course={course}
                         onRemove={handleRemoveCourse}
+                        onDoubleClick={handleCourseDoubleClick}
                       />
                     ))
                   )}
@@ -653,48 +613,6 @@ export const WeeklyCategorization: React.FC = () => {
               </button>
             </div>
           </div>
-
-          <DragOverlay>
-            {activeEvent ? (
-              <div className="event-card dragging">
-                <div className="event-title">{activeEvent.title}</div>
-                <div className="event-time">
-                  {(() => {
-                    const startTime = activeEvent.startDateTime;
-                    const endTime = activeEvent.endDateTime;
-                    if (!startTime && !endTime) return '時間未設定';
-
-                    const formatDateTime = (dateString: string) => {
-                      const date = new Date(dateString);
-                      const dateStr = date.toLocaleDateString('zh-TW', {
-                        month: '2-digit',
-                        day: '2-digit',
-                      });
-                      const timeStr = date.toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                      });
-                      return `${dateStr} ${timeStr}`;
-                    };
-
-                    return (
-                      <>
-                        {startTime && formatDateTime(startTime)}
-                        {startTime && endTime && ' – '}
-                        {endTime && new Date(endTime).toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: false
-                        })}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
       )}
 
       {/* Edit Event Modal */}
@@ -879,6 +797,27 @@ export const WeeklyCategorization: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Week View Modal Placeholder */}
+      {showWeekViewModal && selectedCourseForWeekView && (
+        <div className="modal-overlay" onClick={() => setShowWeekViewModal(false)}>
+          <div className="modal-content week-view-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>
+                {allMasterEvents.find(c => c.id === selectedCourseForWeekView)?.title} - 周視圖
+              </h2>
+              <button className="modal-close" onClick={() => setShowWeekViewModal(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ padding: '24px', textAlign: 'center', color: '#999' }}>
+                周視圖功能開發中...
+              </p>
+            </div>
           </div>
         </div>
       )}
