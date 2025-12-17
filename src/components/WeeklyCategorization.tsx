@@ -12,7 +12,14 @@ import {
 } from '@dnd-kit/core';
 import { RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchAndNormalizeWeeklyEvents, NormalizedEvent } from '../services/googleCalendar';
+import {
+  fetchAndNormalizeWeeklyEvents,
+  NormalizedEvent,
+  createLocalPersonalEvent,
+  updateLocalPersonalEvent,
+  deleteLocalPersonalEvent,
+  CreateLocalEventRequest,
+} from '../services/googleCalendar';
 import { getMasterEvents, MasterEvent } from '../services/masterEvents';
 import { getUserCourseCache } from '../services/appsScript';
 import {
@@ -131,6 +138,7 @@ export const WeeklyCategorization: React.FC = () => {
   const [showCourseMenu, setShowCourseMenu] = useState(false);
   const [editingEvent, setEditingEvent] = useState<NormalizedEvent | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // DnD sensors
   const sensors = useSensors(
@@ -365,6 +373,21 @@ export const WeeklyCategorization: React.FC = () => {
   const handleSaveEditedEvent = (updatedEvent: Partial<NormalizedEvent>) => {
     if (!editingEvent) return;
 
+    // Check if this is a local event (ID starts with "local_")
+    const isLocalEvent = editingEvent.id.startsWith('local_') || editingEvent.googleEventId.startsWith('local_');
+
+    if (isLocalEvent) {
+      // Update in localStorage
+      updateLocalPersonalEvent(editingEvent.id, {
+        title: updatedEvent.title,
+        description: updatedEvent.description,
+        location: updatedEvent.location,
+        startDateTime: updatedEvent.startDateTime,
+        endDateTime: updatedEvent.endDateTime,
+      });
+    }
+
+    // Update in UI state
     setLastWeekEvents(prev =>
       prev.map(event =>
         event.id === editingEvent.id
@@ -375,6 +398,29 @@ export const WeeklyCategorization: React.FC = () => {
 
     setShowEditModal(false);
     setEditingEvent(null);
+
+    if (isLocalEvent) {
+      alert('✅ 本地事件已更新');
+    }
+  };
+
+  // Handle create new local event
+  const handleCreateLocalEvent = (eventData: CreateLocalEventRequest) => {
+    try {
+      const newEvent = createLocalPersonalEvent(eventData);
+
+      // Add to UI state
+      setLastWeekEvents(prev => [...prev, newEvent]);
+
+      setShowCreateModal(false);
+      alert('✅ 本地事件已新增');
+
+      console.log('✅ Created local event:', newEvent);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '新增失敗';
+      console.error('❌ Failed to create local event:', errorMsg);
+      alert(`❌ 新增失敗：${errorMsg}`);
+    }
   };
 
   // Get courses that are selected by user
@@ -507,7 +553,16 @@ export const WeeklyCategorization: React.FC = () => {
             <div className="two-column-layout">
               {/* Left Column: Last Week's Schedule */}
               <div className="left-column">
-                <h2 className="column-title">Last Week's Schedule</h2>
+                <div className="column-header">
+                  <h2 className="column-title">Last Week's Schedule</h2>
+                  <button
+                    className="create-event-button"
+                    onClick={() => setShowCreateModal(true)}
+                    title="新增本地 Personal Event"
+                  >
+                    + 新增事件
+                  </button>
+                </div>
                 <div className="events-list">
                   {lastWeekEvents.length === 0 ? (
                     <div className="empty-state">
@@ -684,6 +739,98 @@ export const WeeklyCategorization: React.FC = () => {
                 </button>
                 <button type="submit" className="primary">
                   儲存 (本地)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Event Modal */}
+      {showCreateModal && (
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>新增 Personal Event (本地)</h2>
+              <button className="modal-close" onClick={() => setShowCreateModal(false)}>
+                ✕
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const startDateTime = formData.get('startDateTime') as string;
+                const endDateTime = formData.get('endDateTime') as string;
+
+                handleCreateLocalEvent({
+                  title: formData.get('title') as string,
+                  description: formData.get('description') as string,
+                  location: formData.get('location') as string,
+                  startDateTime: new Date(startDateTime).toISOString(),
+                  endDateTime: new Date(endDateTime).toISOString(),
+                });
+              }}
+            >
+              <div className="form-group">
+                <label htmlFor="create-title">標題 *</label>
+                <input
+                  type="text"
+                  id="create-title"
+                  name="title"
+                  required
+                  placeholder="事件標題"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="create-description">說明</label>
+                <textarea
+                  id="create-description"
+                  name="description"
+                  rows={3}
+                  placeholder="事件說明"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="create-startDateTime">開始時間 *</label>
+                  <input
+                    type="datetime-local"
+                    id="create-startDateTime"
+                    name="startDateTime"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="create-endDateTime">結束時間 *</label>
+                  <input
+                    type="datetime-local"
+                    id="create-endDateTime"
+                    name="endDateTime"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="create-location">地點</label>
+                <input
+                  type="text"
+                  id="create-location"
+                  name="location"
+                  placeholder="事件地點"
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" onClick={() => setShowCreateModal(false)}>
+                  取消
+                </button>
+                <button type="submit" className="primary">
+                  新增
                 </button>
               </div>
             </form>

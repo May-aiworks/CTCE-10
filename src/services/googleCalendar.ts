@@ -306,22 +306,29 @@ export const fetchAndNormalizeWeeklyEvents = async (
 
   console.log(`📅 Filtered out all-day events: ${response.events.length} → ${normalizedEvents.length}`);
 
+  // 合併本地 Personal Events
+  const mergedEvents = mergeWithLocalEvents(
+    normalizedEvents,
+    response.weekStart,
+    response.weekEnd
+  );
+
   // 儲存到 localStorage 快取
   const cacheKey = `calendar_events_week_${weekOffset}`;
   localStorage.setItem(cacheKey, JSON.stringify({
-    events: normalizedEvents,
+    events: mergedEvents,
     weekStart: response.weekStart.toISOString(),
     weekEnd: response.weekEnd.toISOString(),
     cachedAt: new Date().toISOString(),
   }));
 
-  console.log(`💾 Cached ${normalizedEvents.length} events to localStorage (${cacheKey})`);
+  console.log(`💾 Cached ${mergedEvents.length} events to localStorage (${cacheKey})`);
 
   return {
-    events: normalizedEvents,
+    events: mergedEvents,
     weekStart: response.weekStart,
     weekEnd: response.weekEnd,
-    count: normalizedEvents.length,
+    count: mergedEvents.length,
   };
 };
 
@@ -376,4 +383,181 @@ export const clearCalendarCache = (): void => {
     }
   });
   console.log('🗑️ Calendar cache cleared');
+};
+
+/**
+ * 本地新增 Personal Event (不同步到 Google Calendar)
+ */
+const LOCAL_EVENTS_KEY = 'local_personal_events';
+
+export interface CreateLocalEventRequest {
+  title: string;
+  description?: string;
+  startDateTime: string; // ISO 8601 format
+  endDateTime: string;   // ISO 8601 format
+  location?: string;
+}
+
+/**
+ * 取得所有本地 Personal Events
+ */
+export const getLocalPersonalEvents = (): NormalizedEvent[] => {
+  const stored = localStorage.getItem(LOCAL_EVENTS_KEY);
+  if (!stored) {
+    return [];
+  }
+
+  try {
+    const data = JSON.parse(stored);
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error('❌ Failed to parse local personal events:', error);
+    return [];
+  }
+};
+
+/**
+ * 儲存本地 Personal Events
+ */
+const saveLocalPersonalEvents = (events: NormalizedEvent[]): void => {
+  localStorage.setItem(LOCAL_EVENTS_KEY, JSON.stringify(events));
+};
+
+/**
+ * 新增本地 Personal Event
+ */
+export const createLocalPersonalEvent = (
+  request: CreateLocalEventRequest
+): NormalizedEvent => {
+  const events = getLocalPersonalEvents();
+
+  const startTime = new Date(request.startDateTime);
+  const endTime = new Date(request.endDateTime);
+  const durationMs = endTime.getTime() - startTime.getTime();
+  const durationMinutes = Math.floor(durationMs / 60000);
+
+  const newEvent: NormalizedEvent = {
+    id: `local_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+    googleEventId: `local_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+    title: request.title,
+    description: request.description || '',
+    location: request.location || '',
+    startDateTime: request.startDateTime,
+    endDateTime: request.endDateTime,
+    isAllDay: false,
+    durationMinutes,
+    status: 'confirmed',
+  };
+
+  events.push(newEvent);
+  saveLocalPersonalEvents(events);
+
+  console.log('✅ Created local personal event:', newEvent);
+  return newEvent;
+};
+
+/**
+ * 更新本地 Personal Event
+ */
+export const updateLocalPersonalEvent = (
+  eventId: string,
+  updates: Partial<CreateLocalEventRequest>
+): NormalizedEvent | null => {
+  const events = getLocalPersonalEvents();
+  const eventIndex = events.findIndex(e => e.id === eventId || e.googleEventId === eventId);
+
+  if (eventIndex === -1) {
+    console.warn(`⚠️ Local event ${eventId} not found`);
+    return null;
+  }
+
+  const event = events[eventIndex];
+
+  // Update fields
+  if (updates.title !== undefined) {
+    event.title = updates.title;
+  }
+  if (updates.description !== undefined) {
+    event.description = updates.description;
+  }
+  if (updates.location !== undefined) {
+    event.location = updates.location;
+  }
+  if (updates.startDateTime !== undefined) {
+    event.startDateTime = updates.startDateTime;
+  }
+  if (updates.endDateTime !== undefined) {
+    event.endDateTime = updates.endDateTime;
+  }
+
+  // Recalculate duration if times changed
+  if (updates.startDateTime !== undefined || updates.endDateTime !== undefined) {
+    const startTime = new Date(event.startDateTime);
+    const endTime = new Date(event.endDateTime);
+    const durationMs = endTime.getTime() - startTime.getTime();
+    event.durationMinutes = Math.floor(durationMs / 60000);
+  }
+
+  events[eventIndex] = event;
+  saveLocalPersonalEvents(events);
+
+  console.log('✅ Updated local personal event:', event);
+  return event;
+};
+
+/**
+ * 刪除本地 Personal Event
+ */
+export const deleteLocalPersonalEvent = (eventId: string): boolean => {
+  const events = getLocalPersonalEvents();
+  const filteredEvents = events.filter(e => e.id !== eventId && e.googleEventId !== eventId);
+
+  if (filteredEvents.length === events.length) {
+    console.warn(`⚠️ Local event ${eventId} not found`);
+    return false;
+  }
+
+  saveLocalPersonalEvents(filteredEvents);
+  console.log(`🗑️ Deleted local personal event ${eventId}`);
+  return true;
+};
+
+/**
+ * 清除所有本地 Personal Events
+ */
+export const clearLocalPersonalEvents = (): void => {
+  localStorage.removeItem(LOCAL_EVENTS_KEY);
+  console.log('🗑️ Cleared all local personal events');
+};
+
+/**
+ * 合併 Google Calendar Events 和本地 Personal Events
+ * 用於在週視圖中同時顯示兩者
+ */
+export const mergeWithLocalEvents = (
+  googleEvents: NormalizedEvent[],
+  weekStart?: Date,
+  weekEnd?: Date
+): NormalizedEvent[] => {
+  const localEvents = getLocalPersonalEvents();
+
+  // 如果有指定週範圍，過濾本地事件
+  let filteredLocalEvents = localEvents;
+  if (weekStart && weekEnd) {
+    filteredLocalEvents = localEvents.filter(event => {
+      const eventStart = new Date(event.startDateTime);
+      return eventStart >= weekStart && eventStart <= weekEnd;
+    });
+  }
+
+  // 合併並按開始時間排序
+  const allEvents = [...googleEvents, ...filteredLocalEvents];
+  allEvents.sort((a, b) => {
+    const aStart = new Date(a.startDateTime).getTime();
+    const bStart = new Date(b.startDateTime).getTime();
+    return aStart - bStart;
+  });
+
+  console.log(`📋 Merged events: ${googleEvents.length} from Google + ${filteredLocalEvents.length} local = ${allEvents.length} total`);
+  return allEvents;
 };
