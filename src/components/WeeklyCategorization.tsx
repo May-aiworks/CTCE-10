@@ -26,7 +26,10 @@ import { AuthButton } from './AuthButton';
 import './WeeklyCategorization.css';
 
 // Draggable Event Card Component
-const DraggableEventCard: React.FC<{ event: NormalizedEvent }> = ({ event }) => {
+const DraggableEventCard: React.FC<{
+  event: NormalizedEvent;
+  onDoubleClick: (event: NormalizedEvent) => void;
+}> = ({ event, onDoubleClick }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `personal-event-${event.id}`,
   });
@@ -60,6 +63,7 @@ const DraggableEventCard: React.FC<{ event: NormalizedEvent }> = ({ event }) => 
       {...listeners}
       {...attributes}
       className="event-card"
+      onDoubleClick={() => onDoubleClick(event)}
     >
       <div className="event-title">{event.title}</div>
       <div className="event-time">
@@ -109,6 +113,8 @@ export const WeeklyCategorization: React.FC = () => {
   const [activeEvent, setActiveEvent] = useState<NormalizedEvent | null>(null);
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [showCourseMenu, setShowCourseMenu] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<NormalizedEvent | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // DnD sensors
   const sensors = useSensors(
@@ -298,6 +304,28 @@ export const WeeklyCategorization: React.FC = () => {
     });
   };
 
+  // Handle double click on event to edit
+  const handleEventDoubleClick = (event: NormalizedEvent) => {
+    setEditingEvent(event);
+    setShowEditModal(true);
+  };
+
+  // Handle save edited event (local only)
+  const handleSaveEditedEvent = (updatedEvent: Partial<NormalizedEvent>) => {
+    if (!editingEvent) return;
+
+    setLastWeekEvents(prev =>
+      prev.map(event =>
+        event.id === editingEvent.id
+          ? { ...event, ...updatedEvent }
+          : event
+      )
+    );
+
+    setShowEditModal(false);
+    setEditingEvent(null);
+  };
+
   // Get courses that are selected by user
   const coursesInProgress = allMasterEvents.filter(masterEvent =>
     selectedCourseIds.includes(masterEvent.id)
@@ -428,7 +456,11 @@ export const WeeklyCategorization: React.FC = () => {
                     </div>
                   ) : (
                     lastWeekEvents.map(event => (
-                      <DraggableEventCard key={event.id} event={event} />
+                      <DraggableEventCard
+                        key={event.id}
+                        event={event}
+                        onDoubleClick={handleEventDoubleClick}
+                      />
                     ))
                   )}
                 </div>
@@ -500,6 +532,100 @@ export const WeeklyCategorization: React.FC = () => {
             ) : null}
           </DragOverlay>
         </DndContext>
+      )}
+
+      {/* Edit Event Modal */}
+      {showEditModal && editingEvent && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>編輯事件 (本地)</h2>
+              <button className="modal-close" onClick={() => setShowEditModal(false)}>
+                ✕
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                handleSaveEditedEvent({
+                  title: formData.get('title') as string,
+                  description: formData.get('description') as string,
+                  location: formData.get('location') as string,
+                  startDateTime: formData.get('startDateTime') as string,
+                  endDateTime: formData.get('endDateTime') as string,
+                });
+              }}
+            >
+              <div className="form-group">
+                <label htmlFor="title">標題 *</label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  defaultValue={editingEvent.title}
+                  required
+                  placeholder="事件標題"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="description">說明</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  defaultValue={editingEvent.description}
+                  rows={3}
+                  placeholder="事件說明"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="startDateTime">開始時間 *</label>
+                  <input
+                    type="datetime-local"
+                    id="startDateTime"
+                    name="startDateTime"
+                    defaultValue={editingEvent.startDateTime?.slice(0, 16)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="endDateTime">結束時間 *</label>
+                  <input
+                    type="datetime-local"
+                    id="endDateTime"
+                    name="endDateTime"
+                    defaultValue={editingEvent.endDateTime?.slice(0, 16)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="location">地點</label>
+                <input
+                  type="text"
+                  id="location"
+                  name="location"
+                  defaultValue={editingEvent.location}
+                  placeholder="事件地點"
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" onClick={() => setShowEditModal(false)}>
+                  取消
+                </button>
+                <button type="submit" className="primary">
+                  儲存 (本地)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
