@@ -1,20 +1,39 @@
 /**
  * 登入頁面
- * 使用 Google Identity Services 前端 OAuth
+ * 使用標準的 Google Identity Services
  */
 
-import React from 'react';
-import { LogIn, Shield, Calendar, FileSpreadsheet } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Shield, Calendar, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { renderGoogleButton } from '../services/googleAuth';
 import './LoginPage.css';
 
 export const LoginPage: React.FC = () => {
-  const { login, loading, error } = useAuth();
+  const { login, loading, error, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
-  const handleLogin = () => {
-    console.log('👆 User clicked login button');
+  // 初始化 Google Identity 並渲染按鈕
+  useEffect(() => {
+    // 初始化 Google Identity Services
     login();
-  };
+
+    // 等待 DOM 載入後渲染按鈕
+    const timer = setTimeout(() => {
+      renderGoogleButton('google-signin-button');
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [login]);
+
+  // 登入成功後導向首頁
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('✅ Authentication successful, redirecting to home...');
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   return (
     <div className="login-page">
@@ -34,14 +53,10 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <button
-            className="login-button"
-            onClick={handleLogin}
-            disabled={loading}
-          >
-            <LogIn size={20} />
-            {loading ? '載入中...' : '使用 Google 登入'}
-          </button>
+          {/* Google 登入按鈕容器 */}
+          <div className="google-button-container">
+            <div id="google-signin-button"></div>
+          </div>
 
           <div className="login-info">
             <div className="info-item">
