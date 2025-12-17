@@ -1,16 +1,17 @@
 /**
  * 前端 Google OAuth 認證 Context
- * 使用 Google Identity Services，不依賴後端
+ * 使用標準的 Google Identity Services
  */
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import {
   loadGoogleIdentityServices,
-  initGoogleLogin,
+  initGoogleIdentity,
   getAuthStatus,
   logout as googleLogout,
   GoogleAuthStatus,
   getTokenExpiryInfo,
+  showOneTap,
 } from '../services/googleAuth';
 
 interface AuthContextType {
@@ -19,9 +20,11 @@ interface AuthContextType {
   error: string | null;
   login: () => void;
   logout: () => void;
+  triggerOneTap: () => void;
   isAuthenticated: boolean;
   userEmail: string | null;
   userName: string | null;
+  userPicture: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -80,22 +83,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     init();
   }, []);
 
-  // 登入函數
+  // 初始化 Google Identity（在 LoginPage 中呼叫）
   const login = () => {
     setError(null);
-    console.log('🔐 Initiating Google Login...');
+    console.log('🔐 Initializing Google Identity...');
 
-    initGoogleLogin(
-      (status) => {
+    initGoogleIdentity(
+      (status: GoogleAuthStatus) => {
         console.log('✅ Login successful:', status.userEmail);
         setAuthStatus(status);
         setError(null);
       },
-      (errorMsg) => {
+      (errorMsg: string) => {
         console.error('❌ Login failed:', errorMsg);
         setError(errorMsg);
       }
     );
+  };
+
+  // 顯示 One Tap（用於自動登入）
+  const triggerOneTap = () => {
+    if (authStatus.isAuthenticated) {
+      return; // 已登入，不需要顯示 One Tap
+    }
+    console.log('🔄 Triggering One Tap...');
+    showOneTap();
   };
 
   // 登出函數
@@ -105,9 +117,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('✅ Logged out successfully');
       setAuthStatus({
         isAuthenticated: false,
+        idToken: null,
         accessToken: null,
         userEmail: null,
         userName: null,
+        userPicture: null,
         expiresAt: null,
       });
       setError(null);
@@ -120,9 +134,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error,
     login,
     logout,
+    triggerOneTap,
     isAuthenticated: authStatus.isAuthenticated,
     userEmail: authStatus.userEmail,
     userName: authStatus.userName,
+    userPicture: authStatus.userPicture,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
