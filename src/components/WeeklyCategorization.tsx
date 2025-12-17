@@ -19,6 +19,7 @@ import {
   updateLocalPersonalEvent,
   deleteLocalPersonalEvent,
   CreateLocalEventRequest,
+  clearAllLocalOperations,
 } from '../services/googleCalendar';
 import { getMasterEvents, MasterEvent } from '../services/masterEvents';
 import { getUserCourseCache } from '../services/appsScript';
@@ -423,6 +424,42 @@ export const WeeklyCategorization: React.FC = () => {
     }
   };
 
+  // Handle clear all local operations
+  const handleClearAllOperations = () => {
+    const localEventsCount = lastWeekEvents.filter(e =>
+      e.id.startsWith('local_') || e.googleEventId.startsWith('local_')
+    ).length;
+    const categorizationsCount = categorizations.length;
+
+    if (localEventsCount === 0 && categorizationsCount === 0) {
+      alert('沒有需要清除的本地操作');
+      return;
+    }
+
+    const confirmMessage =
+      `確定要清除本次所有操作嗎？\n\n` +
+      `這將會清除：\n` +
+      `- ${localEventsCount} 個本地新增的事件\n` +
+      `- ${categorizationsCount} 筆歸類記錄\n\n` +
+      `此操作無法復原。`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    // Clear from sessionStorage
+    clearAllLocalOperations();
+
+    // Clear from UI state
+    setLastWeekEvents(prev =>
+      prev.filter(e => !e.id.startsWith('local_') && !e.googleEventId.startsWith('local_'))
+    );
+    setCategorizations([]);
+
+    alert('✅ 已清除本次所有操作');
+    console.log('✅ All local operations cleared');
+  };
+
   // Get courses that are selected by user
   const coursesInProgress = allMasterEvents.filter(masterEvent =>
     selectedCourseIds.includes(masterEvent.id)
@@ -486,6 +523,14 @@ export const WeeklyCategorization: React.FC = () => {
                 onClick={() => setShowCourseMenu(!showCourseMenu)}
               >
                 選擇課程 ({selectedCourseIds.length})
+              </button>
+              <button
+                className="clear-operations-button"
+                onClick={handleClearAllOperations}
+                disabled={loading}
+                title="清除本次所有操作（本地事件與歸類記錄）"
+              >
+                清除本次所有操作
               </button>
             </>
           )}

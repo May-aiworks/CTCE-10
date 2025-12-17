@@ -531,6 +531,22 @@ export const clearLocalPersonalEvents = (): void => {
 };
 
 /**
+ * 清除本次所有操作（本地 events + 歸類記錄）
+ * 用於手動重置當前 session 的所有本地操作
+ */
+export const clearAllLocalOperations = (): void => {
+  console.log('🗑️ Clearing all local operations...');
+
+  // 清除本地 Personal Events
+  sessionStorage.removeItem(LOCAL_EVENTS_KEY);
+
+  // 清除歸類記錄
+  sessionStorage.removeItem('event_categorizations');
+
+  console.log('✅ All local operations cleared (personal events & categorizations)');
+};
+
+/**
  * 合併 Google Calendar Events 和本地 Personal Events
  * 用於在週視圖中同時顯示兩者
  */
