@@ -255,6 +255,47 @@
   align-items: center;
   justify-content: center;
   letter-spacing: -0.41px;
+  position: relative;
+}
+
+.course-card-title {
+  flex: 1;
+}
+
+.course-card-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e0e0e0;
+  border-radius: 50%;
+  font-size: 18px;
+  color: #d32f2f;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.course-card:hover .course-card-remove {
+  opacity: 1;
+}
+
+.course-card-remove:hover {
+  background: #d32f2f;
+  color: white;
+  border-color: #d32f2f;
+  transform: scale(1.1);
+}
+
+.course-card-remove:active {
+  transform: scale(0.95);
 }
 
 .course-card:hover {

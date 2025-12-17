@@ -19,7 +19,8 @@ import {
   getAllCategorizations,
   createCategorization as createCategorizationLocal,
   exportCategorizationsForSubmit,
-  CategorizationData
+  CategorizationData,
+  getCategorizationsByMasterEventId
 } from '../services/categorization';
 import { submitRecords, getCurrentWeek } from '../services/appsScript';
 import { AuthButton } from './AuthButton';
@@ -81,7 +82,10 @@ const DraggableEventCard: React.FC<{
 };
 
 // Droppable Course Card Component
-const DroppableCourseCard: React.FC<{ course: MasterEvent }> = ({ course }) => {
+const DroppableCourseCard: React.FC<{
+  course: MasterEvent;
+  onRemove: (courseId: string) => void;
+}> = ({ course, onRemove }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `master-event-${course.id}`,
   });
@@ -94,9 +98,21 @@ const DroppableCourseCard: React.FC<{ course: MasterEvent }> = ({ course }) => {
       }
     : {};
 
+  const handleRemoveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRemove(course.id);
+  };
+
   return (
     <div ref={setNodeRef} className="course-card" style={style}>
-      {course.title}
+      <span className="course-card-title">{course.title}</span>
+      <button
+        className="course-card-remove"
+        onClick={handleRemoveClick}
+        title="移除課程並捨棄所有相關記錄"
+      >
+        ✕
+      </button>
     </div>
   );
 };
@@ -304,6 +320,41 @@ export const WeeklyCategorization: React.FC = () => {
     });
   };
 
+  // Handle remove course and its categorizations
+  const handleRemoveCourse = (courseId: string) => {
+    const course = allMasterEvents.find(c => c.id === courseId);
+    if (!course) return;
+
+    // Get all categorizations for this course
+    const relatedCategorizations = getCategorizationsByMasterEventId(courseId);
+    const recordCount = relatedCategorizations.length;
+
+    // Show confirmation dialog
+    const confirmMessage = recordCount > 0
+      ? `確定要移除課程「${course.title}」嗎？\n\n這將會捨棄 ${recordCount} 筆相關的歸類記錄。\n此操作無法復原。`
+      : `確定要移除課程「${course.title}」嗎？`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    // Remove course from selected list
+    setSelectedCourseIds(prev => prev.filter(id => id !== courseId));
+
+    // Delete all related categorizations
+    if (recordCount > 0) {
+      const updatedCategorizations = categorizations.filter(
+        cat => cat.masterEventId !== courseId
+      );
+      localStorage.setItem('event_categorizations', JSON.stringify(updatedCategorizations));
+      setCategorizations(updatedCategorizations);
+
+      console.log(`🗑️ Removed course ${course.title} and ${recordCount} categorizations`);
+    }
+
+    alert(`✅ 已移除課程「${course.title}」${recordCount > 0 ? `及 ${recordCount} 筆相關記錄` : ''}`);
+  };
+
   // Handle double click on event to edit
   const handleEventDoubleClick = (event: NormalizedEvent) => {
     setEditingEvent(event);
@@ -484,7 +535,11 @@ export const WeeklyCategorization: React.FC = () => {
                     </div>
                   ) : (
                     coursesInProgress.map(course => (
-                      <DroppableCourseCard key={course.id} course={course} />
+                      <DroppableCourseCard
+                        key={course.id}
+                        course={course}
+                        onRemove={handleRemoveCourse}
+                      />
                     ))
                   )}
                 </div>
