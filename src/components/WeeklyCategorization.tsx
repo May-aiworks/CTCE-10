@@ -11,23 +11,22 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import { RefreshCw } from 'lucide-react';
-import { CalendarEvent, MasterEvent, EventCategorization } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { calendarApi, masterEventsApi, dndApi } from '../services/api';
+import { fetchAndNormalizeWeeklyEvents, NormalizedEvent } from '../services/googleCalendar';
+import { getMasterEvents, MasterEvent } from '../services/masterEvents';
+import { getUserCourseCache } from '../services/appsScript';
+import {
+  getAllCategorizations,
+  createCategorization as createCategorizationLocal,
+  exportCategorizationsForSubmit,
+  CategorizationData
+} from '../services/categorization';
+import { submitRecords, getCurrentWeek } from '../services/appsScript';
 import { AuthButton } from './AuthButton';
 import './WeeklyCategorization.css';
 
-// Helper function to get start/end time from event (handles both naming conventions)
-const getEventStartTime = (event: CalendarEvent): string => {
-  return event.start_datetime || event.start_time || '';
-};
-
-const getEventEndTime = (event: CalendarEvent): string => {
-  return event.end_datetime || event.end_time || '';
-};
-
 // Draggable Event Card Component
-const DraggableEventCard: React.FC<{ event: CalendarEvent }> = ({ event }) => {
+const DraggableEventCard: React.FC<{ event: NormalizedEvent }> = ({ event }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `personal-event-${event.id}`,
   });
@@ -39,9 +38,6 @@ const DraggableEventCard: React.FC<{ event: CalendarEvent }> = ({ event }) => {
         cursor: 'grab',
       }
     : { cursor: 'grab' };
-
-  const startTime = getEventStartTime(event);
-  const endTime = getEventEndTime(event);
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -67,14 +63,14 @@ const DraggableEventCard: React.FC<{ event: CalendarEvent }> = ({ event }) => {
     >
       <div className="event-title">{event.title}</div>
       <div className="event-time">
-        {startTime && formatDateTime(startTime)}
-        {startTime && endTime && ' – '}
-        {endTime && new Date(endTime).toLocaleTimeString('en-US', {
+        {event.startDateTime && formatDateTime(event.startDateTime)}
+        {event.startDateTime && event.endDateTime && ' – '}
+        {event.endDateTime && new Date(event.endDateTime).toLocaleTimeString('en-US', {
           hour: '2-digit',
           minute: '2-digit',
           hour12: false,
         })}
-        {!startTime && !endTime && '時間未設定'}
+        {!event.startDateTime && !event.endDateTime && '時間未設定'}
       </div>
     </div>
   );
@@ -104,13 +100,14 @@ const DroppableCourseCard: React.FC<{ course: MasterEvent }> = ({ course }) => {
 export const WeeklyCategorization: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [weekOffset, setWeekOffset] = useState<number>(-1); // Default to last week
-  const [lastWeekEvents, setLastWeekEvents] = useState<CalendarEvent[]>([]);
-  const [masterEvents, setMasterEvents] = useState<MasterEvent[]>([]);
-  const [categorizations, setCategorizations] = useState<EventCategorization[]>([]);
+  const [lastWeekEvents, setLastWeekEvents] = useState<NormalizedEvent[]>([]);
+  const [allMasterEvents, setAllMasterEvents] = useState<MasterEvent[]>([]);
+  const [userCourseIds, setUserCourseIds] = useState<string[]>([]);
+  const [categorizations, setCategorizations] = useState<CategorizationData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null);
-  const [selectedCourseIds, setSelectedCourseIds] = useState<number[]>([]);
+  const [activeEvent, setActiveEvent] = useState<NormalizedEvent | null>(null);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [showCourseMenu, setShowCourseMenu] = useState(false);
 
   // DnD sensors
@@ -122,7 +119,7 @@ export const WeeklyCategorization: React.FC = () => {
     })
   );
 
-  // Load weekly personal events based on weekOffset
+  // Load weekly personal events from Google Calendar
   const loadLastWeekEvents = useCallback(async () => {
     if (!isAuthenticated) return;
 
@@ -130,7 +127,7 @@ export const WeeklyCategorization: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await calendarApi.getWeeklyPersonalEvents(weekOffset);
+      const response = await fetchAndNormalizeWeeklyEvents(weekOffset);
       setLastWeekEvents(response.events);
 
       console.log(`📅 Loaded week ${weekOffset} events:`, response.events.length);
@@ -142,43 +139,53 @@ export const WeeklyCategorization: React.FC = () => {
     }
   }, [isAuthenticated, weekOffset]);
 
-  // Load master events (courses)
+  // Load master events from Google Sheets
   const loadMasterEvents = useCallback(async () => {
     if (!isAuthenticated) return;
 
     try {
-      const response = await masterEventsApi.getMasterEvents();
-      setMasterEvents(response.events);
+      const events = await getMasterEvents();
+      setAllMasterEvents(events);
 
-      console.log('📚 Loaded master events:', response.events.length);
+      console.log('📚 Loaded master events:', events.length);
     } catch (err) {
       console.error('❌ Failed to load master events:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load master events');
     }
   }, [isAuthenticated]);
 
-  // Load categorizations (using getCalendarData as recommended)
-  const loadCategorizations = useCallback(async () => {
+  // Load user's course cache from Google Sheets
+  const loadUserCourseCache = useCallback(async () => {
     if (!isAuthenticated) return;
 
     try {
-      const response = await dndApi.getCalendarData();
-      setCategorizations(response.categorizations);
-
-      console.log('🔗 Loaded categorizations:', response.categorizations.length);
+      const response = await getUserCourseCache();
+      if (response.success && response.courseIds) {
+        setUserCourseIds(response.courseIds);
+        setSelectedCourseIds(response.courseIds); // 顯示使用者快取中的所有課程
+        console.log('🎓 Loaded user course cache:', response.courseIds);
+      }
     } catch (err) {
-      console.error('❌ Failed to load categorizations:', err);
+      console.error('❌ Failed to load user course cache:', err);
     }
   }, [isAuthenticated]);
 
-  // Refresh all data (independently to avoid one failure blocking others)
+  // Load categorizations from localStorage
+  const loadCategorizations = useCallback(() => {
+    const cats = getAllCategorizations();
+    setCategorizations(cats);
+    console.log('🔗 Loaded categorizations:', cats.length);
+  }, []);
+
+  // Refresh all data
   const handleRefresh = useCallback(async () => {
-    // Run all requests independently - don't let one failure block the others
     await Promise.allSettled([
       loadLastWeekEvents(),
       loadMasterEvents(),
-      loadCategorizations(),
+      loadUserCourseCache(),
     ]);
-  }, [loadLastWeekEvents, loadMasterEvents, loadCategorizations]);
+    loadCategorizations();
+  }, [loadLastWeekEvents, loadMasterEvents, loadUserCourseCache, loadCategorizations]);
 
   // Initial load and reload when week changes
   useEffect(() => {
@@ -189,7 +196,7 @@ export const WeeklyCategorization: React.FC = () => {
 
   // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
-    const eventId = parseInt(event.active.id.toString().replace('personal-event-', ''));
+    const eventId = event.active.id.toString().replace('personal-event-', '');
     const draggedEvent = lastWeekEvents.find(e => e.id === eventId);
     setActiveEvent(draggedEvent || null);
   };
@@ -201,11 +208,11 @@ export const WeeklyCategorization: React.FC = () => {
 
     if (!over) return;
 
-    const personalEventId = parseInt(active.id.toString().replace('personal-event-', ''));
-    const masterEventId = parseInt(over.id.toString().replace('master-event-', ''));
+    const personalEventId = active.id.toString().replace('personal-event-', '');
+    const masterEventId = over.id.toString().replace('master-event-', '');
 
     const personalEvent = lastWeekEvents.find(e => e.id === personalEventId);
-    const masterEvent = masterEvents.find(e => e.id === masterEventId);
+    const masterEvent = allMasterEvents.find(e => e.id === masterEventId);
 
     if (!personalEvent || !masterEvent) return;
 
@@ -215,16 +222,16 @@ export const WeeklyCategorization: React.FC = () => {
         master: masterEvent.title
       });
 
-      const result = await dndApi.createCategorization({
-        personal_event_id: personalEventId,
-        master_event_id: masterEventId,
-        notes: `拖放歸類於 ${new Date().toLocaleString('zh-TW')}`
-      });
+      const result = createCategorizationLocal(
+        personalEvent,
+        masterEvent,
+        `拖放歸類於 ${new Date().toLocaleString('zh-TW')}`
+      );
 
       console.log('✅ 歸類成功:', result);
 
       // Reload categorizations
-      await loadCategorizations();
+      loadCategorizations();
 
       alert(
         `✅ 歸類成功！\n\n` +
@@ -239,29 +246,60 @@ export const WeeklyCategorization: React.FC = () => {
   };
 
   // Handle submit
-  const handleSubmit = () => {
-    console.log('📤 Submitting categorizations:', categorizations);
-    alert(`提交 ${categorizations.length} 筆歸類資料`);
+  const handleSubmit = async () => {
+    if (categorizations.length === 0) {
+      alert('沒有要提交的記錄');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Export categorizations to submit format
+      const records = exportCategorizationsForSubmit();
+
+      // Get current week
+      const week = getCurrentWeek();
+
+      console.log('📤 Submitting records:', { week, records });
+
+      // Submit to Google Sheets via Apps Script
+      const result = await submitRecords(week, records);
+
+      console.log('✅ Submit result:', result);
+
+      alert(
+        `✅ ${result.message}\n\n` +
+        `週次: ${week}\n` +
+        `新增記錄: ${result.newRecords} 筆\n` +
+        `作廢舊記錄: ${result.markedAsInvalid} 筆\n` +
+        `Batch ID: ${result.batchId}`
+      );
+
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '提交失敗';
+      console.error('❌ Submit failed:', errorMsg);
+      setError(errorMsg);
+      alert(`❌ 提交失敗：${errorMsg}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle course selection toggle
-  const handleCourseToggle = (courseId: number) => {
+  const handleCourseToggle = (courseId: string) => {
     setSelectedCourseIds(prev => {
       if (prev.includes(courseId)) {
         return prev.filter(id => id !== courseId);
       } else {
-        // Limit to 3 courses
-        if (prev.length >= 3) {
-          alert('最多只能選擇 3 門課程');
-          return prev;
-        }
         return [...prev, courseId];
       }
     });
   };
 
-  // Get courses that are "in progress" (user selected courses)
-  const coursesInProgress = masterEvents.filter(masterEvent =>
+  // Get courses that are selected by user
+  const coursesInProgress = allMasterEvents.filter(masterEvent =>
     selectedCourseIds.includes(masterEvent.id)
   );
 
@@ -322,7 +360,7 @@ export const WeeklyCategorization: React.FC = () => {
                 className="course-menu-button"
                 onClick={() => setShowCourseMenu(!showCourseMenu)}
               >
-                選擇課程 ({selectedCourseIds.length}/3)
+                選擇課程 ({selectedCourseIds.length})
               </button>
             </>
           )}
@@ -334,16 +372,16 @@ export const WeeklyCategorization: React.FC = () => {
         <div className="course-menu-overlay" onClick={() => setShowCourseMenu(false)}>
           <div className="course-menu" onClick={e => e.stopPropagation()}>
             <div className="course-menu-header">
-              <h3>選擇課程（最多 3 門）</h3>
+              <h3>選擇課程</h3>
               <button onClick={() => setShowCourseMenu(false)}>✕</button>
             </div>
             <div className="course-menu-list">
-              {masterEvents.length === 0 ? (
+              {allMasterEvents.length === 0 ? (
                 <div className="empty-state">
                   <p>沒有可用的課程</p>
                 </div>
               ) : (
-                masterEvents.map(course => (
+                allMasterEvents.map(course => (
                   <label key={course.id} className="course-menu-item" htmlFor={`course-${course.id}`}>
                     <input
                       id={`course-${course.id}`}
@@ -402,7 +440,7 @@ export const WeeklyCategorization: React.FC = () => {
                 <div className="courses-grid">
                   {coursesInProgress.length === 0 ? (
                     <div className="empty-state">
-                      <p>請先點擊「選擇課程」按鈕選擇最多 3 門課程</p>
+                      <p>請先點擊「選擇課程」按鈕選擇要顯示的課程</p>
                     </div>
                   ) : (
                     coursesInProgress.map(course => (
@@ -416,7 +454,7 @@ export const WeeklyCategorization: React.FC = () => {
             {/* Submit Button */}
             <div className="submit-container">
               <button className="submit-button" onClick={handleSubmit}>
-                Submit
+                Submit ({categorizations.length} records)
               </button>
             </div>
           </div>
@@ -427,8 +465,8 @@ export const WeeklyCategorization: React.FC = () => {
                 <div className="event-title">{activeEvent.title}</div>
                 <div className="event-time">
                   {(() => {
-                    const startTime = getEventStartTime(activeEvent);
-                    const endTime = getEventEndTime(activeEvent);
+                    const startTime = activeEvent.startDateTime;
+                    const endTime = activeEvent.endDateTime;
                     if (!startTime && !endTime) return '時間未設定';
 
                     const formatDateTime = (dateString: string) => {
