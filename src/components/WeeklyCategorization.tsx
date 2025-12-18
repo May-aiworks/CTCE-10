@@ -372,10 +372,22 @@ export const WeeklyCategorization: React.FC = () => {
   // Get the start of the week based on weekOffset
   const getWeekStart = () => {
     const now = new Date();
-    const currentDay = now.getDay();
+    const currentDay = now.getDay(); // 0 (Sunday) - 6 (Saturday)
     const diff = now.getDate() - currentDay + (weekOffset * 7);
-    const weekStart = new Date(now.setDate(diff));
+
+    // Create a new Date object to avoid mutating 'now'
+    const weekStart = new Date(now);
+    weekStart.setDate(diff);
     weekStart.setHours(0, 0, 0, 0);
+
+    console.log('📅 Week start calculated:', {
+      today: now.toISOString(),
+      currentDay,
+      weekOffset,
+      weekStart: weekStart.toISOString(),
+      weekStartDay: weekStart.getDay()
+    });
+
     return weekStart;
   };
 
@@ -428,10 +440,18 @@ export const WeeklyCategorization: React.FC = () => {
       const newEndDate = new Date(newStartDate);
       newEndDate.setMinutes(newEndDate.getMinutes() + draggedEvent.durationMinutes);
 
-      console.log('🕐 New time:', {
+      console.log('🕐 New time calculated:', {
+        weekStart: weekStart.toISOString(),
+        weekStartDay: weekStart.getDay(),
+        dayIndex,
+        targetDate: newStartDate.toISOString(),
+        targetDayOfWeek: newStartDate.getDay(),
+        dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        expectedDay: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][newStartDate.getDay()],
+        hour,
+        duration: draggedEvent.durationMinutes,
         start: newStartDate.toISOString(),
-        end: newEndDate.toISOString(),
-        duration: draggedEvent.durationMinutes
+        end: newEndDate.toISOString()
       });
 
       // Update the event time
