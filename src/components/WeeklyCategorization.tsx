@@ -19,7 +19,8 @@ import {
   getAllCategorizations,
   exportCategorizationsForSubmit,
   CategorizationData,
-  getCategorizationsByMasterEventId
+  getCategorizationsByMasterEventId,
+  createCategorization
 } from '../services/categorization';
 import { submitRecords, getCurrentWeek } from '../services/appsScript';
 import { AuthButton } from './AuthButton';
@@ -324,17 +325,24 @@ export const WeeklyCategorization: React.FC = () => {
 
   // Handle event update from drag and drop
   const handleEventUpdate = (eventId: string, newStartDateTime: string, newEndDateTime: string) => {
+    console.log('🔄 handleEventUpdate called', { eventId, newStartDateTime, newEndDateTime });
+
     const event = lastWeekEvents.find(e => e.id === eventId);
     if (!event) {
-      console.warn(`⚠️ Event ${eventId} not found`);
+      console.warn(`⚠️ Event ${eventId} not found in lastWeekEvents`);
+      console.log('Available events:', lastWeekEvents.map(e => ({ id: e.id, title: e.title })));
       return;
     }
 
+    console.log(`📝 Updating event: ${event.title}`);
+
     // Check if this is a local event
     const isLocalEvent = event.id.startsWith('local_') || event.googleEventId.startsWith('local_');
+    console.log(`🏷️ Is local event: ${isLocalEvent}`);
 
     if (isLocalEvent) {
       // Update in localStorage
+      console.log('💾 Updating in localStorage/sessionStorage');
       updateLocalPersonalEvent(event.id, {
         startDateTime: newStartDateTime,
         endDateTime: newEndDateTime,
@@ -342,6 +350,7 @@ export const WeeklyCategorization: React.FC = () => {
     }
 
     // Update in UI state
+    console.log('🎨 Updating UI state');
     setLastWeekEvents(prev =>
       prev.map(e =>
         e.id === eventId
@@ -382,19 +391,32 @@ export const WeeklyCategorization: React.FC = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
+    console.log('🎯 handleDragEnd triggered', { active: active.id, over: over?.id });
+
     // Clear active event
     setActiveEvent(null);
 
-    if (!over) return;
+    if (!over) {
+      console.log('❌ No drop target');
+      return;
+    }
 
     // Get the dragged event from PersonalEventPanel
     const draggedEvent = active.data.current?.event as NormalizedEvent;
-    if (!draggedEvent) return;
+    if (!draggedEvent) {
+      console.log('❌ No dragged event data');
+      return;
+    }
+
+    console.log('📦 Dragged event:', draggedEvent.title);
+    console.log('📍 Drop target data:', over.data.current);
 
     // Check if dropped on a time slot
     const dropData = over.data.current as { hour: number; dayIndex: number } | undefined;
     if (dropData) {
       const { hour, dayIndex } = dropData;
+
+      console.log(`✅ Dropped on: Day ${dayIndex}, Hour ${hour}`);
 
       // Calculate new start time based on the drop position
       const weekStart = getWeekStart();
@@ -406,12 +428,41 @@ export const WeeklyCategorization: React.FC = () => {
       const newEndDate = new Date(newStartDate);
       newEndDate.setMinutes(newEndDate.getMinutes() + draggedEvent.durationMinutes);
 
-      // Update the event
+      console.log('🕐 New time:', {
+        start: newStartDate.toISOString(),
+        end: newEndDate.toISOString(),
+        duration: draggedEvent.durationMinutes
+      });
+
+      // Update the event time
       handleEventUpdate(
         draggedEvent.id,
         newStartDate.toISOString(),
         newEndDate.toISOString()
       );
+
+      // If dropped on WeekCalendarView, create categorization
+      if (selectedCourseForWeekView) {
+        const masterEvent = allMasterEvents.find(m => m.id === selectedCourseForWeekView);
+        if (masterEvent) {
+          console.log(`🎯 Creating categorization to course: ${masterEvent.title}`);
+
+          // Create categorization
+          const newCategorization = createCategorization(draggedEvent, masterEvent);
+
+          // Update local state
+          setCategorizations(prev => {
+            // Remove any existing categorization for this event
+            const filtered = prev.filter(c => c.personalEventId !== draggedEvent.googleEventId);
+            // Add new categorization
+            return [...filtered, newCategorization];
+          });
+
+          console.log(`✅ Event categorized to ${masterEvent.title}`);
+        }
+      }
+    } else {
+      console.log('⚠️ Drop target is not a time slot');
     }
   };
 
