@@ -166,263 +166,13 @@
 .two-column-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 64px; /* 8pt grid: ✓ */
+  gap: 0; /* No gap - splitter handles spacing */
   margin-bottom: 80px; /* 8pt grid: ✓ */
-}
-
-.column-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-}
-
-.column-title {
-  font-size: 28px; /* iOS Title 1 */
-  font-weight: 700;
-  margin: 0;
-  color: #1a1a1a;
-  letter-spacing: 0.36px;
-}
-
-.create-event-button {
-  min-height: 44px;
-  padding: 10px 20px;
-  background: #4285f4;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.create-event-button:hover {
-  background: #3367d6;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
-}
-
-.create-event-button:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(66, 133, 244, 0.3);
-}
-
-/* Left Column: Events List */
-.left-column {
-  padding-right: 32px;
-  border-right: 1px solid #e8e8e8;
-}
-
-.events-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.event-card {
-  background: #e8f0fe;
-  border-radius: 12px;
-  padding: 20px 24px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  cursor: pointer;
-  user-select: none;
-}
-
-.event-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15);
-}
-
-.event-card:active {
-  cursor: grabbing;
-}
-
-.event-card.dragging {
-  opacity: 0.8;
-  box-shadow: 0 8px 16px rgba(66, 133, 244, 0.3);
-  cursor: grabbing;
-}
-
-.event-title {
-  font-size: 17px; /* iOS Headline */
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 8px;
-  letter-spacing: -0.41px;
-}
-
-.event-time {
-  font-size: 15px; /* iOS Subheadline */
-  color: #5f6368;
-  letter-spacing: -0.24px;
-}
-
-/* Right Column: Courses Grid */
-.right-column {
-  padding-left: 32px;
-}
-
-.courses-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 16px;
-}
-
-.course-card {
-  background: white;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 32px 24px;
-  text-align: center;
-  font-size: 17px; /* iOS Headline */
-  font-weight: 600;
-  color: #1a1a1a;
-  transition: all 0.2s;
-  cursor: pointer;
-  min-height: 100px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  letter-spacing: -0.41px;
   position: relative;
-  gap: 8px;
+  transition: grid-template-columns 0.3s ease;
 }
 
-.course-card-title {
-  flex: 1;
-}
-
-.course-card-hint {
-  font-size: 12px;
-  color: #999;
-  font-weight: 400;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.course-card:hover .course-card-hint {
-  opacity: 1;
-}
-
-.course-card-remove {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  min-width: 32px;
-  min-height: 32px;
-  padding: 4px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #e0e0e0;
-  border-radius: 50%;
-  font-size: 18px;
-  color: #d32f2f;
-  cursor: pointer;
-  opacity: 0;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.course-card:hover .course-card-remove {
-  opacity: 1;
-}
-
-.course-card-remove:hover {
-  background: #d32f2f;
-  color: white;
-  border-color: #d32f2f;
-  transform: scale(1.1);
-}
-
-.course-card-remove:active {
-  transform: scale(0.95);
-}
-
-.course-card:hover {
-  border-color: #4285f4;
-  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.1);
-  transform: translateY(-2px);
-}
-
-/* Hover effect when dragging over */
-.course-card[style*="backgroundColor"] {
-  border-color: #2196f3 !important;
-  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.3) !important;
-}
-
-/* Empty State */
-.empty-state {
-  padding: 48px 24px;
-  text-align: center;
-  color: #888;
-  font-size: 16px;
-}
-
-/* Events Section Grouping */
-.events-section {
-  margin-bottom: 32px;
-}
-
-.section-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 16px 0;
-  letter-spacing: 0.38px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.empty-section {
-  padding: 24px;
-  text-align: center;
-  color: #999;
-  font-size: 14px;
-  background: #f9f9f9;
-  border-radius: 8px;
-  font-style: italic;
-}
-
-.section-events {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* Categorized Group Styles */
-.categorized-group {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border-left: 4px solid #ff6801;
-}
-
-.group-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #ff6801;
-  margin: 0 0 12px 0;
-  letter-spacing: 0;
-}
-
-.group-events {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.categorized-group .event-card {
-  background: white;
-  border: 1px solid #e0e0e0;
-}
+/* Component-specific styles have been moved to PersonalEventPanel.css and MasterEventPanel.css */
 
 /* Submit Button */
 .submit-container {
@@ -464,21 +214,6 @@
   .two-column-layout {
     grid-template-columns: 1fr;
     gap: 48px;
-  }
-
-  .left-column {
-    padding-right: 0;
-    border-right: none;
-    border-bottom: 1px solid #e8e8e8;
-    padding-bottom: 48px;
-  }
-
-  .right-column {
-    padding-left: 0;
-  }
-
-  .courses-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 }
 
@@ -876,4 +611,36 @@
   .form-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* Week view styles have been moved to MasterEventPanel.css */
+
+/* Drag Overlay Styles */
+.drag-overlay-event {
+  background: #e8f0fe;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 8px 24px rgba(66, 133, 244, 0.3);
+  cursor: grabbing;
+  user-select: none;
+  z-index: 9999;
+  min-width: 250px;
+  max-width: 350px;
+  opacity: 0.95;
+  transform: rotate(3deg);
+  border: 2px solid #4285f4;
+}
+
+.drag-overlay-event .event-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  letter-spacing: -0.41px;
+}
+
+.drag-overlay-event .event-time {
+  font-size: 15px;
+  color: #5f6368;
+  letter-spacing: -0.24px;
 }

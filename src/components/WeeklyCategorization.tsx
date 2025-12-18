@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { DndContext, DragEndEvent, DragOverlay } from '@dnd-kit/core';
 import { RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { ResizableSplitter } from './ResizableSplitter';
+import { PersonalEventPanel } from './PersonalEventPanel';
+import { MasterEventPanel } from './MasterEventPanel';
 import {
   fetchAndNormalizeWeeklyEvents,
   NormalizedEvent,
@@ -21,81 +25,11 @@ import { submitRecords, getCurrentWeek } from '../services/appsScript';
 import { AuthButton } from './AuthButton';
 import './WeeklyCategorization.css';
 
-// Event Card Component (non-draggable in main view)
-const EventCard: React.FC<{
-  event: NormalizedEvent;
-  onDoubleClick: (event: NormalizedEvent) => void;
-}> = ({ event, onDoubleClick }) => {
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const dateStr = date.toLocaleDateString('zh-TW', {
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const timeStr = date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-    return `${dateStr} ${timeStr}`;
-  };
-
-  return (
-    <div
-      className="event-card"
-      onDoubleClick={() => onDoubleClick(event)}
-    >
-      <div className="event-title">{event.title}</div>
-      <div className="event-time">
-        {event.startDateTime && formatDateTime(event.startDateTime)}
-        {event.startDateTime && event.endDateTime && ' – '}
-        {event.endDateTime && new Date(event.endDateTime).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        })}
-        {!event.startDateTime && !event.endDateTime && '時間未設定'}
-      </div>
-    </div>
-  );
-};
-
-// Course Card Component (double-click to open week view)
-const CourseCard: React.FC<{
-  course: MasterEvent;
-  onRemove: (courseId: string) => void;
-  onDoubleClick: (courseId: string) => void;
-}> = ({ course, onRemove, onDoubleClick }) => {
-  const handleRemoveClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onRemove(course.id);
-  };
-
-  return (
-    <div
-      className="course-card"
-      onDoubleClick={() => onDoubleClick(course.id)}
-      title="雙擊展開周視圖"
-    >
-      <span className="course-card-title">{course.title}</span>
-      <div className="course-card-hint">雙擊展開</div>
-      <button
-        className="course-card-remove"
-        onClick={handleRemoveClick}
-        title="移除課程並捨棄所有相關記錄"
-      >
-        ✕
-      </button>
-    </div>
-  );
-};
-
 export const WeeklyCategorization: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [weekOffset, setWeekOffset] = useState<number>(-1); // Default to last week
   const [lastWeekEvents, setLastWeekEvents] = useState<NormalizedEvent[]>([]);
   const [allMasterEvents, setAllMasterEvents] = useState<MasterEvent[]>([]);
-  const [userCourseIds, setUserCourseIds] = useState<string[]>([]);
   const [categorizations, setCategorizations] = useState<CategorizationData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +40,8 @@ export const WeeklyCategorization: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedCourseForWeekView, setSelectedCourseForWeekView] = useState<string | null>(null);
   const [showWeekViewModal, setShowWeekViewModal] = useState(false);
+  const [leftColumnWidth, setLeftColumnWidth] = useState<number>(400);
+  const [activeEvent, setActiveEvent] = useState<NormalizedEvent | null>(null);
 
   // Load weekly personal events from Google Calendar
   const loadLastWeekEvents = useCallback(async () => {
@@ -149,7 +85,6 @@ export const WeeklyCategorization: React.FC = () => {
     try {
       const response = await getUserCourseCache();
       if (response.success && response.courseIds) {
-        setUserCourseIds(response.courseIds);
         setSelectedCourseIds(response.courseIds); // 顯示使用者快取中的所有課程
         console.log('🎓 Loaded user course cache:', response.courseIds);
       }
@@ -336,6 +271,21 @@ export const WeeklyCategorization: React.FC = () => {
     setShowWeekViewModal(true);
   };
 
+  // Handle resizable splitter resize
+  const handleSplitterResize = (newLeftWidth: number) => {
+    setLeftColumnWidth(newLeftWidth);
+    // Save to localStorage
+    localStorage.setItem('weekViewLeftColumnWidth', newLeftWidth.toString());
+  };
+
+  // Load saved width from localStorage
+  useEffect(() => {
+    const savedWidth = localStorage.getItem('weekViewLeftColumnWidth');
+    if (savedWidth) {
+      setLeftColumnWidth(parseInt(savedWidth, 10));
+    }
+  }, []);
+
   // Handle clear all local operations
   const handleClearAllOperations = () => {
     const localEventsCount = lastWeekEvents.filter(e =>
@@ -372,28 +322,107 @@ export const WeeklyCategorization: React.FC = () => {
     console.log('✅ All local operations cleared');
   };
 
+  // Handle event update from drag and drop
+  const handleEventUpdate = (eventId: string, newStartDateTime: string, newEndDateTime: string) => {
+    const event = lastWeekEvents.find(e => e.id === eventId);
+    if (!event) {
+      console.warn(`⚠️ Event ${eventId} not found`);
+      return;
+    }
+
+    // Check if this is a local event
+    const isLocalEvent = event.id.startsWith('local_') || event.googleEventId.startsWith('local_');
+
+    if (isLocalEvent) {
+      // Update in localStorage
+      updateLocalPersonalEvent(event.id, {
+        startDateTime: newStartDateTime,
+        endDateTime: newEndDateTime,
+      });
+    }
+
+    // Update in UI state
+    setLastWeekEvents(prev =>
+      prev.map(e =>
+        e.id === eventId
+          ? {
+              ...e,
+              startDateTime: newStartDateTime,
+              endDateTime: newEndDateTime,
+              durationMinutes: Math.floor(
+                (new Date(newEndDateTime).getTime() - new Date(newStartDateTime).getTime()) / 60000
+              ),
+            }
+          : e
+      )
+    );
+
+    console.log(`✅ Event ${event.title} updated to ${newStartDateTime}`);
+  };
+
+  // Get the start of the week based on weekOffset
+  const getWeekStart = () => {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const diff = now.getDate() - currentDay + (weekOffset * 7);
+    const weekStart = new Date(now.setDate(diff));
+    weekStart.setHours(0, 0, 0, 0);
+    return weekStart;
+  };
+
+  // Handle drag start - track the active event for DragOverlay
+  const handleDragStart = (event: any) => {
+    const draggedEvent = event.active.data.current?.event as NormalizedEvent;
+    if (draggedEvent) {
+      setActiveEvent(draggedEvent);
+    }
+  };
+
+  // Handle drag end - for dragging from PersonalEventPanel to WeekCalendarView
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    // Clear active event
+    setActiveEvent(null);
+
+    if (!over) return;
+
+    // Get the dragged event from PersonalEventPanel
+    const draggedEvent = active.data.current?.event as NormalizedEvent;
+    if (!draggedEvent) return;
+
+    // Check if dropped on a time slot
+    const dropData = over.data.current as { hour: number; dayIndex: number } | undefined;
+    if (dropData) {
+      const { hour, dayIndex } = dropData;
+
+      // Calculate new start time based on the drop position
+      const weekStart = getWeekStart();
+      const newStartDate = new Date(weekStart);
+      newStartDate.setDate(weekStart.getDate() + dayIndex);
+      newStartDate.setHours(hour, 0, 0, 0);
+
+      // Calculate new end time (preserve duration)
+      const newEndDate = new Date(newStartDate);
+      newEndDate.setMinutes(newEndDate.getMinutes() + draggedEvent.durationMinutes);
+
+      // Update the event
+      handleEventUpdate(
+        draggedEvent.id,
+        newStartDate.toISOString(),
+        newEndDate.toISOString()
+      );
+    }
+  };
+
   // Get courses that are selected by user
   const coursesInProgress = allMasterEvents.filter(masterEvent =>
     selectedCourseIds.includes(masterEvent.id)
   );
 
-  // Group events into categorized and uncategorized
-  const uncategorizedEvents = lastWeekEvents.filter(
-    event => !categorizations.find(cat => cat.personalEventId === event.googleEventId)
-  );
-
-  const categorizedEventsByMaster = coursesInProgress.map(master => {
-    const relatedCategorizations = categorizations.filter(
-      cat => cat.masterEventId === master.id
-    );
-    const events = lastWeekEvents.filter(event =>
-      relatedCategorizations.find(cat => cat.personalEventId === event.googleEventId)
-    );
-    return { masterEvent: master, events, count: events.length };
-  }).filter(group => group.count > 0); // Only show masters with events
-
   return (
-    <div className="weekly-categorization">
+    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="weekly-categorization">
       <div className="page-header">
         <div className="header-left">
           <h1>Weekly Schedule Review</h1>
@@ -516,94 +545,49 @@ export const WeeklyCategorization: React.FC = () => {
           <p>Loading...</p>
         </div>
       ) : (
-          <div className="content-container">
-            <div className="two-column-layout">
-              {/* Left Column: Last Week's Schedule */}
-              <div className="left-column">
-                <div className="column-header">
-                  <h2 className="column-title">Last Week's Schedule</h2>
-                  <button
-                    className="create-event-button"
-                    onClick={() => setShowCreateModal(true)}
-                    title="新增本地 Personal Event"
-                  >
-                    + 新增事件
-                  </button>
-                </div>
-                <div className="events-list">
-                  {lastWeekEvents.length === 0 ? (
-                    <div className="empty-state">
-                      <p>No events found for this week</p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Uncategorized Events Section */}
-                      <div className="events-section">
-                        <h3 className="section-title">📅 未歸類事件</h3>
-                        {uncategorizedEvents.length === 0 ? (
-                          <div className="empty-section">
-                            <p>所有事件都已歸類</p>
-                          </div>
-                        ) : (
-                          <div className="section-events">
-                            {uncategorizedEvents.map(event => (
-                              <EventCard
-                                key={event.id}
-                                event={event}
-                                onDoubleClick={handleEventDoubleClick}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
+          <div className={`content-container ${showWeekViewModal ? 'week-view-active' : ''}`}>
+            <div
+              className="two-column-layout"
+              style={{
+                gridTemplateColumns: `${leftColumnWidth}px 16px 1fr`
+              }}
+            >
+              {/* Left Panel: Personal Events */}
+              <PersonalEventPanel
+                events={lastWeekEvents}
+                categorizations={categorizations}
+                masterEvents={coursesInProgress}
+                onEventDoubleClick={handleEventDoubleClick}
+                onCreateEvent={() => setShowCreateModal(true)}
+                isWeekViewActive={showWeekViewModal}
+              />
 
-                      {/* Categorized Events Section */}
-                      {categorizedEventsByMaster.length > 0 && (
-                        <div className="events-section">
-                          <h3 className="section-title">🎯 已歸類事件</h3>
-                          {categorizedEventsByMaster.map(({ masterEvent, events, count }) => (
-                            <div key={masterEvent.id} className="categorized-group">
-                              <h4 className="group-title">
-                                [{masterEvent.title}] ({count})
-                              </h4>
-                              <div className="group-events">
-                                {events.map(event => (
-                                  <EventCard
-                                    key={event.id}
-                                    event={event}
-                                    onDoubleClick={handleEventDoubleClick}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
+              {/* Resizable Splitter (always shown) */}
+              <ResizableSplitter
+                onResize={handleSplitterResize}
+                initialLeftWidth={leftColumnWidth}
+                minLeftWidth={250}
+                minRightWidth={400}
+              />
 
-              {/* Right Column: Courses in Progress */}
-              <div className="right-column">
-                <h2 className="column-title">Courses in Progress</h2>
-                <div className="courses-grid">
-                  {coursesInProgress.length === 0 ? (
-                    <div className="empty-state">
-                      <p>請先點擊「選擇課程」按鈕選擇要顯示的課程</p>
-                    </div>
-                  ) : (
-                    coursesInProgress.map(course => (
-                      <CourseCard
-                        key={course.id}
-                        course={course}
-                        onRemove={handleRemoveCourse}
-                        onDoubleClick={handleCourseDoubleClick}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
+              {/* Right Panel: Master Events */}
+              <MasterEventPanel
+                courses={coursesInProgress}
+                onRemoveCourse={handleRemoveCourse}
+                onCourseDoubleClick={handleCourseDoubleClick}
+                isWeekViewActive={showWeekViewModal}
+                weekViewCourseId={selectedCourseForWeekView}
+                onCloseWeekView={() => setShowWeekViewModal(false)}
+                categorizedEvents={lastWeekEvents.filter(event => {
+                  // Only include events that are categorized to the selected course
+                  const categorization = categorizations.find(
+                    cat => cat.personalEventId === event.googleEventId
+                  );
+                  return categorization && categorization.masterEventId === selectedCourseForWeekView;
+                })}
+                weekOffset={weekOffset}
+                onEventUpdate={handleEventUpdate}
+              />
             </div>
 
             {/* Submit Button */}
@@ -801,26 +785,29 @@ export const WeeklyCategorization: React.FC = () => {
         </div>
       )}
 
-      {/* Week View Modal Placeholder */}
-      {showWeekViewModal && selectedCourseForWeekView && (
-        <div className="modal-overlay" onClick={() => setShowWeekViewModal(false)}>
-          <div className="modal-content week-view-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>
-                {allMasterEvents.find(c => c.id === selectedCourseForWeekView)?.title} - 周視圖
-              </h2>
-              <button className="modal-close" onClick={() => setShowWeekViewModal(false)}>
-                ✕
-              </button>
-            </div>
-            <div className="modal-body">
-              <p style={{ padding: '24px', textAlign: 'center', color: '#999' }}>
-                周視圖功能開發中...
-              </p>
+      </div>
+
+      {/* DragOverlay for showing dragged event */}
+      <DragOverlay dropAnimation={null}>
+        {activeEvent ? (
+          <div className="drag-overlay-event">
+            <div className="event-title">{activeEvent.title}</div>
+            <div className="event-time">
+              {activeEvent.startDateTime && new Date(activeEvent.startDateTime).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              })}
+              {activeEvent.startDateTime && activeEvent.endDateTime && ' – '}
+              {activeEvent.endDateTime && new Date(activeEvent.endDateTime).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              })}
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 };
