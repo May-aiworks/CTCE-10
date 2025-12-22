@@ -54,37 +54,24 @@ const DraggableEvent: React.FC<{
   );
 };
 
-// Droppable Column Component (one per day)
-const DroppableColumn: React.FC<{
+// Droppable Time Slot Component (individual cell)
+const DroppableTimeSlot: React.FC<{
+  hour: number;
   dayIndex: number;
-  hours: number[];
-  hoveredSlot: { dayIndex: number; hour: number; minute: number } | null;
-}> = ({ dayIndex, hours, hoveredSlot }) => {
-  const droppableId = `column-${dayIndex}`;
-  const { setNodeRef } = useDroppable({
+}> = ({ hour, dayIndex }) => {
+  const droppableId = `slot-${dayIndex}-${hour}`;
+  const { setNodeRef, isOver } = useDroppable({
     id: droppableId,
-    data: { dayIndex },
+    data: { dayIndex, hour },
   });
 
   return (
     <div
       ref={setNodeRef}
-      className="day-column"
+      className={`time-slot ${isOver ? 'drag-over' : ''}`}
+      data-hour={hour}
       data-day={dayIndex}
-      style={{ gridColumn: dayIndex + 2, gridRow: '2 / -1' }}
-    >
-      {hours.map(hour => {
-        const isHovered = hoveredSlot?.dayIndex === dayIndex && hoveredSlot?.hour === hour;
-        return (
-          <div
-            key={hour}
-            className={`time-slot ${isHovered ? 'drag-over' : ''}`}
-            data-hour={hour}
-            data-day={dayIndex}
-          />
-        );
-      })}
-    </div>
+    />
   );
 };
 
