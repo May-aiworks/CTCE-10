@@ -6,7 +6,7 @@
 import { getUserEmail } from './googleAuth';
 
 // Apps Script Web App URL
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzchKqZwzNZ7ojrtENvuMLaFnJ-JMmnMwC6fVfAU1iFDvtiuQ9zTp3-tCPDCTIhrdNV-g/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxIk7ePzVoztEIwaVQ3CT42guFCUR5wXYZD8X6dofDFeCTOGIaPDcDYhv7GsrBQN471SA/exec';
 
 // API Actions (對應 code.gs 中的 API_ACTIONS)
 const API_ACTIONS = {
@@ -91,39 +91,28 @@ class AppsScriptError extends Error {
 
 /**
  * 通用 Apps Script API 請求函數
+ * 統一使用 POST + text/plain 避免 CORS preflight
  */
 const appsScriptRequest = async <T>(
   action: string,
-  params: Record<string, any> = {},
-  method: 'GET' | 'POST' = 'GET'
+  params: Record<string, any> = {}
 ): Promise<T> => {
   try {
-    let url = APPS_SCRIPT_URL;
-    let fetchOptions: RequestInit = {
-      method,
+    // 統一使用 POST + text/plain 避免 CORS preflight
+    const fetchOptions: RequestInit = {
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'text/plain;charset=utf-8',
       },
+      body: JSON.stringify({
+        action,
+        ...params,
+      }),
     };
 
-    if (method === 'GET') {
-      // GET 請求：參數放在 query string
-      const queryParams = new URLSearchParams({
-        action,
-        ...params,
-      });
-      url = `${APPS_SCRIPT_URL}?${queryParams}`;
-    } else {
-      // POST 請求：參數放在 body
-      fetchOptions.body = JSON.stringify({
-        action,
-        ...params,
-      });
-    }
+    console.log(`🔗 Apps Script POST Request:`, action, params);
 
-    console.log(`🔗 Apps Script ${method} Request:`, action, params);
-
-    const response = await fetch(url, fetchOptions);
+    const response = await fetch(APPS_SCRIPT_URL, fetchOptions);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -156,8 +145,7 @@ export const getUserCourseCache = async (): Promise<UserCourseCache> => {
 
   const response = await appsScriptRequest<UserCourseCache>(
     API_ACTIONS.GET_USER_COURSE_CACHE,
-    { email },
-    'GET'
+    { email }
   );
 
   // 儲存到 localStorage
@@ -182,8 +170,7 @@ export const getSubmittedRecords = async (week: string): Promise<SubmittedRecord
 
   return appsScriptRequest<SubmittedRecordsResponse>(
     API_ACTIONS.GET_SUBMITTED_RECORDS,
-    { email, week },
-    'GET'
+    { email, week }
   );
 };
 
@@ -218,8 +205,7 @@ export const submitRecords = async (
 
   return appsScriptRequest<SubmitRecordsResponse>(
     API_ACTIONS.SUBMIT_RECORDS,
-    { email, week, records },
-    'POST'
+    { email, week, records }
   );
 };
 
@@ -235,8 +221,7 @@ export const updateUserCourseCache = async (courseIds: string[]): Promise<Update
 
   const response = await appsScriptRequest<UpdateCourseCache>(
     API_ACTIONS.UPDATE_USER_COURSE_CACHE,
-    { email, courseIds },
-    'POST'
+    { email, courseIds }
   );
 
   // 更新 localStorage
