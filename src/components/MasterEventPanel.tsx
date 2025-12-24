@@ -4,13 +4,53 @@ import { NormalizedEvent } from '../services/googleCalendar';
 import { WeekCalendarView } from './WeekCalendarView';
 import './MasterEventPanel.css';
 
-// Course Card Component
-const CourseCard: React.FC<{
+// Event Card for Kanban Board
+const KanbanEventCard: React.FC<{
+  event: NormalizedEvent;
+  onDoubleClick: (event: NormalizedEvent) => void;
+}> = ({ event, onDoubleClick }) => {
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const dateStr = date.toLocaleDateString('zh-TW', {
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const timeStr = date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    return `${dateStr} ${timeStr}`;
+  };
+
+  return (
+    <div
+      className="kanban-event-card"
+      onDoubleClick={() => onDoubleClick(event)}
+    >
+      <div className="kanban-event-title">{event.title}</div>
+      <div className="kanban-event-time">
+        {event.startDateTime && formatDateTime(event.startDateTime)}
+        {event.startDateTime && event.endDateTime && ' – '}
+        {event.endDateTime && new Date(event.endDateTime).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Kanban Column Component (Course Card)
+const KanbanColumn: React.FC<{
   course: MasterEvent;
+  events: NormalizedEvent[];
   onRemove: (courseId: string) => void;
   onDoubleClick: (courseId: string) => void;
   onEventDrop?: (courseId: string, eventData: string) => void;
-}> = ({ course, onRemove, onDoubleClick, onEventDrop }) => {
+  onEventDoubleClick: (event: NormalizedEvent) => void;
+}> = ({ course, events, onRemove, onDoubleClick, onEventDrop, onEventDoubleClick }) => {
   const [isOver, setIsOver] = React.useState(false);
 
   const handleRemoveClick = (e: React.MouseEvent) => {
@@ -44,24 +84,43 @@ const CourseCard: React.FC<{
 
   return (
     <div
-      className={`course-card ${isOver ? 'drag-over' : ''}`}
-      onDoubleClick={() => onDoubleClick(course.id)}
+      className={`kanban-column ${isOver ? 'drag-over' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      title="雙擊展開周視圖 | 拖曳事件到此處進行分類"
     >
-      <span className="course-card-title">{course.title}</span>
-      <div className="course-card-hint">
-        {isOver ? '放開以分類' : '雙擊展開'}
+      <div className="kanban-column-header">
+        <div
+          className="kanban-column-title"
+          onDoubleClick={() => onDoubleClick(course.id)}
+          title="雙擊展開周視圖"
+        >
+          {course.title}
+          <span className="kanban-event-count">({events.length})</span>
+        </div>
+        <button
+          className="kanban-column-remove"
+          onClick={handleRemoveClick}
+          title="移除課程並捨棄所有相關記錄"
+        >
+          ✕
+        </button>
       </div>
-      <button
-        className="course-card-remove"
-        onClick={handleRemoveClick}
-        title="移除課程並捨棄所有相關記錄"
-      >
-        ✕
-      </button>
+      <div className="kanban-column-body">
+        {events.length === 0 ? (
+          <div className="kanban-empty-hint">
+            {isOver ? '放開以分類' : '拖曳事件至此'}
+          </div>
+        ) : (
+          events.map(event => (
+            <KanbanEventCard
+              key={event.id}
+              event={event}
+              onDoubleClick={onEventDoubleClick}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 };
@@ -74,9 +133,11 @@ interface MasterEventPanelProps {
   weekViewCourseId: string | null;
   onCloseWeekView: () => void;
   categorizedEvents: NormalizedEvent[];
+  categorizations: { personalEventId: string; masterEventId: string }[];
   weekOffset: number;
   onEventUpdate?: (eventId: string, newStartDateTime: string, newEndDateTime: string) => void;
   onEventDropOnCourse?: (courseId: string, eventData: string) => void;
+  onEventDoubleClick: (event: NormalizedEvent) => void;
 }
 
 export const MasterEventPanel: React.FC<MasterEventPanelProps> = ({
@@ -87,32 +148,46 @@ export const MasterEventPanel: React.FC<MasterEventPanelProps> = ({
   weekViewCourseId,
   onCloseWeekView,
   categorizedEvents,
+  categorizations,
   weekOffset,
   onEventUpdate,
   onEventDropOnCourse,
+  onEventDoubleClick,
 }) => {
   const selectedCourse = weekViewCourseId
     ? courses.find(c => c.id === weekViewCourseId)
     : null;
 
+  // Group categorized events by course
+  const getEventsForCourse = (courseId: string) => {
+    const relatedCategorizations = categorizations.filter(
+      cat => cat.masterEventId === courseId
+    );
+    return categorizedEvents.filter(event =>
+      relatedCategorizations.find(cat => cat.personalEventId === event.googleEventId)
+    );
+  };
+
   return (
     <div className="master-event-panel-wrapper">
-      {/* Courses Grid (hidden when week view is active) */}
+      {/* Kanban Board (hidden when week view is active) */}
       <div className={`master-event-panel ${isWeekViewActive ? 'hide' : ''}`}>
         <h2 className="panel-title">Courses in Progress</h2>
-        <div className="courses-grid">
+        <div className="kanban-board">
           {courses.length === 0 ? (
             <div className="empty-state">
               <p>請先點擊「選擇課程」按鈕選擇要顯示的課程</p>
             </div>
           ) : (
             courses.map(course => (
-              <CourseCard
+              <KanbanColumn
                 key={course.id}
                 course={course}
+                events={getEventsForCourse(course.id)}
                 onRemove={onRemoveCourse}
                 onDoubleClick={onCourseDoubleClick}
                 onEventDrop={onEventDropOnCourse}
+                onEventDoubleClick={onEventDoubleClick}
               />
             ))
           )}

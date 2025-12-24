@@ -24,104 +24,157 @@
   letter-spacing: 0.36px;
 }
 
-.courses-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 16px;
+/* Kanban Board Layout */
+.kanban-board {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 16px;
 }
 
-.course-card {
-  background: white;
+/* Kanban Column (Course) */
+.kanban-column {
+  background: #f8f9fa;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
-  padding: 32px 24px;
-  text-align: center;
+  min-width: 280px;
+  max-width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s;
+  max-height: calc(100vh - 200px);
+}
+
+.kanban-column.drag-over {
+  border-color: #34a853;
+  border-width: 3px;
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f4 100%);
+  box-shadow: 0 8px 24px rgba(52, 168, 83, 0.3);
+  transform: scale(1.02);
+}
+
+.kanban-column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 10px 10px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.kanban-column-title {
+  flex: 1;
   font-size: 17px;
   font-weight: 600;
   color: #1a1a1a;
-  transition: all 0.2s;
   cursor: pointer;
-  min-height: 100px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  transition: color 0.2s;
   letter-spacing: -0.41px;
-  position: relative;
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.course-card-title {
-  flex: 1;
+.kanban-column-title:hover {
+  color: #4285f4;
 }
 
-.course-card-hint {
-  font-size: 12px;
-  color: #999;
+.kanban-event-count {
+  font-size: 14px;
+  color: #5f6368;
   font-weight: 400;
-  opacity: 0;
-  transition: opacity 0.2s;
 }
 
-.course-card:hover .course-card-hint {
-  opacity: 1;
-}
-
-.course-card-remove {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  min-width: 32px;
-  min-height: 32px;
+.kanban-column-remove {
+  min-width: 28px;
+  min-height: 28px;
   padding: 4px;
-  background: rgba(255, 255, 255, 0.95);
+  background: white;
   border: 1px solid #e0e0e0;
   border-radius: 50%;
-  font-size: 18px;
+  font-size: 16px;
   color: #d32f2f;
   cursor: pointer;
-  opacity: 0;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.course-card:hover .course-card-remove {
-  opacity: 1;
-}
-
-.course-card-remove:hover {
+.kanban-column-remove:hover {
   background: #d32f2f;
   color: white;
   border-color: #d32f2f;
   transform: scale(1.1);
 }
 
-.course-card-remove:active {
-  transform: scale(0.95);
+.kanban-column-body {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 120px;
 }
 
-.course-card:hover {
+.kanban-empty-hint {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #999;
+  font-weight: 400;
+  text-align: center;
+  padding: 24px 16px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.kanban-column.drag-over .kanban-empty-hint {
+  color: #1b5e20;
+  font-weight: 600;
+  border-color: #34a853;
+  background: rgba(52, 168, 83, 0.05);
+}
+
+/* Kanban Event Card */
+.kanban-event-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.kanban-event-card:hover {
   border-color: #4285f4;
-  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.1);
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.15);
   transform: translateY(-2px);
 }
 
-/* Drag over state */
-.course-card.drag-over {
-  border-color: #34a853;
-  border-width: 3px;
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-  box-shadow: 0 8px 24px rgba(52, 168, 83, 0.3);
-  transform: translateY(-4px) scale(1.05);
+.kanban-event-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
-.course-card.drag-over .course-card-hint {
-  opacity: 1;
-  color: #1b5e20;
-  font-weight: 600;
+.kanban-event-time {
+  font-size: 12px;
+  color: #5f6368;
+  line-height: 1.3;
 }
 
 /* Empty State */

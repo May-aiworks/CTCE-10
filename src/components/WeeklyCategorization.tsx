@@ -560,7 +560,6 @@ export const WeeklyCategorization: React.FC = () => {
               <PersonalEventPanel
                 events={lastWeekEvents}
                 categorizations={categorizations}
-                masterEvents={coursesInProgress}
                 onEventDoubleClick={handleEventDoubleClick}
                 onCreateEvent={() => setShowCreateModal(true)}
                 isWeekViewActive={showWeekViewModal}
@@ -583,15 +582,16 @@ export const WeeklyCategorization: React.FC = () => {
                 weekViewCourseId={selectedCourseForWeekView}
                 onCloseWeekView={() => setShowWeekViewModal(false)}
                 categorizedEvents={lastWeekEvents.filter(event => {
-                  // Only include events that are categorized to the selected course
-                  const categorization = categorizations.find(
+                  // Include all categorized events (for Kanban board and week view)
+                  return categorizations.find(
                     cat => cat.personalEventId === event.googleEventId
                   );
-                  return categorization && categorization.masterEventId === selectedCourseForWeekView;
                 })}
+                categorizations={categorizations}
                 weekOffset={weekOffset}
                 onEventUpdate={handleEventUpdate}
                 onEventDropOnCourse={handleEventDropOnCourse}
+                onEventDoubleClick={handleEventDoubleClick}
               />
             </div>
 

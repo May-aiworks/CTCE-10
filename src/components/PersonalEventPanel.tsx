@@ -71,7 +71,6 @@ const EventCard: React.FC<{
 interface PersonalEventPanelProps {
   events: NormalizedEvent[];
   categorizations: { personalEventId: string; masterEventId: string }[];
-  masterEvents: { id: string; title: string }[];
   onEventDoubleClick: (event: NormalizedEvent) => void;
   onCreateEvent: () => void;
   isWeekViewActive: boolean;
@@ -80,25 +79,14 @@ interface PersonalEventPanelProps {
 export const PersonalEventPanel: React.FC<PersonalEventPanelProps> = ({
   events,
   categorizations,
-  masterEvents,
   onEventDoubleClick,
   onCreateEvent,
   isWeekViewActive,
 }) => {
-  // Group events into categorized and uncategorized
+  // Only show uncategorized events
   const uncategorizedEvents = events.filter(
     event => !categorizations.find(cat => cat.personalEventId === event.googleEventId)
   );
-
-  const categorizedEventsByMaster = masterEvents.map(master => {
-    const relatedCategorizations = categorizations.filter(
-      cat => cat.masterEventId === master.id
-    );
-    const relatedEvents = events.filter(event =>
-      relatedCategorizations.find(cat => cat.personalEventId === event.googleEventId)
-    );
-    return { masterEvent: master, events: relatedEvents, count: relatedEvents.length };
-  }).filter(group => group.count > 0);
 
   return (
     <div className={`personal-event-panel ${isWeekViewActive ? 'shrink' : ''}`}>
@@ -113,55 +101,23 @@ export const PersonalEventPanel: React.FC<PersonalEventPanelProps> = ({
         </button>
       </div>
       <div className="events-list">
-        {events.length === 0 ? (
+        {uncategorizedEvents.length === 0 ? (
           <div className="empty-state">
-            <p>No events found for this week</p>
+            <p>所有事件都已歸類</p>
           </div>
         ) : (
-          <>
-            {/* Uncategorized Events Section */}
-            <div className="events-section">
-              <h3 className="section-title">📅 未歸類事件</h3>
-              {uncategorizedEvents.length === 0 ? (
-                <div className="empty-section">
-                  <p>所有事件都已歸類</p>
-                </div>
-              ) : (
-                <div className="section-events">
-                  {uncategorizedEvents.map(event => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      onDoubleClick={onEventDoubleClick}
-                    />
-                  ))}
-                </div>
-              )}
+          <div className="events-section">
+            <h3 className="section-title">📅 未歸類事件</h3>
+            <div className="section-events">
+              {uncategorizedEvents.map(event => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onDoubleClick={onEventDoubleClick}
+                />
+              ))}
             </div>
-
-            {/* Categorized Events Section */}
-            {categorizedEventsByMaster.length > 0 && (
-              <div className="events-section">
-                <h3 className="section-title">🎯 已歸類事件</h3>
-                {categorizedEventsByMaster.map(({ masterEvent, events: groupEvents, count }) => (
-                  <div key={masterEvent.id} className="categorized-group">
-                    <h4 className="group-title">
-                      [{masterEvent.title}] ({count})
-                    </h4>
-                    <div className="group-events">
-                      {groupEvents.map(event => (
-                        <EventCard
-                          key={event.id}
-                          event={event}
-                          onDoubleClick={onEventDoubleClick}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+          </div>
         )}
       </div>
     </div>
