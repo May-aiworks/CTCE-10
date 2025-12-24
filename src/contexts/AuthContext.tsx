@@ -117,7 +117,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('✅ Logged out successfully');
       setAuthStatus({
         isAuthenticated: false,
-        idToken: null,
         accessToken: null,
         userEmail: null,
         userName: null,

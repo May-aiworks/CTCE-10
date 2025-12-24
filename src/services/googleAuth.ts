@@ -14,7 +14,6 @@ const SCOPES = [
 
 // LocalStorage Keys
 const STORAGE_KEYS = {
-  ID_TOKEN: 'google_id_token',
   ACCESS_TOKEN: 'google_access_token',
   USER_EMAIL: 'google_user_email',
   USER_NAME: 'google_user_name',
@@ -85,24 +84,11 @@ declare global {
 
 export interface GoogleAuthStatus {
   isAuthenticated: boolean;
-  idToken: string | null;
   accessToken: string | null;
   userEmail: string | null;
   userName: string | null;
   userPicture: string | null;
   expiresAt: number | null;
-}
-
-// JWT Payload 型別
-interface JWTPayload {
-  email: string;
-  name: string;
-  picture: string;
-  sub: string;
-  iss: string;
-  aud: string;
-  exp: number;
-  iat: number;
 }
 
 // Token Client 實例（用於取得 Access Token）
@@ -139,26 +125,6 @@ export const loadGoogleIdentityServices = (): Promise<void> => {
     };
     document.head.appendChild(script);
   });
-};
-
-/**
- * 解碼 JWT Token（不驗證簽章，僅用於前端顯示）
- */
-const parseJwt = (token: string): JWTPayload => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error('❌ Failed to parse JWT:', error);
-    throw new Error('Invalid JWT token');
-  }
 };
 
 /**
@@ -212,11 +178,9 @@ export const initGoogleIdentity = (
             localStorage.setItem(STORAGE_KEYS.USER_NAME, userInfo.name);
             localStorage.setItem(STORAGE_KEYS.USER_PICTURE, userInfo.picture);
             localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRES_AT, expiresAt.toString());
-            localStorage.setItem(STORAGE_KEYS.ID_TOKEN, accessToken); // 使用 Access Token 作為 ID Token
 
             const authStatus: GoogleAuthStatus = {
               isAuthenticated: true,
-              idToken: accessToken,
               accessToken,
               userEmail: userInfo.email,
               userName: userInfo.name,
@@ -242,43 +206,6 @@ export const initGoogleIdentity = (
     console.error('❌ Failed to initialize Google OAuth:', error);
     onError(error instanceof Error ? error.message : 'Initialization failed');
   }
-};
-
-/**
- * 請求 Access Token（用於呼叫 Google APIs）
- */
-const requestAccessToken = (
-  onSuccess: (accessToken: string, expiresIn: number) => void,
-  onError: (error: string) => void
-): void => {
-  if (!isGoogleAuthLoaded()) {
-    onError('Google Identity Services SDK not loaded');
-    return;
-  }
-
-  // 初始化 Token Client（只需初始化一次）
-  if (!tokenClient) {
-    tokenClient = window.google!.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: SCOPES,
-      callback: (response) => {
-        if (response.error) {
-          console.error('❌ Access Token Error:', response.error, response.error_description);
-          onError(response.error_description || response.error);
-          return;
-        }
-
-        onSuccess(response.access_token, response.expires_in);
-      },
-      error_callback: (error) => {
-        console.error('❌ Access Token Error Callback:', error);
-        onError(error.message || 'Failed to get access token');
-      },
-    });
-  }
-
-  // 請求 Access Token（靜默模式，如果已經授權過）
-  tokenClient.requestAccessToken({ prompt: '' });
 };
 
 /**
@@ -352,17 +279,15 @@ export const showOneTap = (): void => {
  * 檢查認證狀態
  */
 export const getAuthStatus = (): GoogleAuthStatus => {
-  const idToken = localStorage.getItem(STORAGE_KEYS.ID_TOKEN);
   const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   const userEmail = localStorage.getItem(STORAGE_KEYS.USER_EMAIL);
   const userName = localStorage.getItem(STORAGE_KEYS.USER_NAME);
   const userPicture = localStorage.getItem(STORAGE_KEYS.USER_PICTURE);
   const expiresAtStr = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRES_AT);
 
-  if (!idToken || !accessToken || !userEmail || !expiresAtStr) {
+  if (!accessToken || !userEmail || !expiresAtStr) {
     return {
       isAuthenticated: false,
-      idToken: null,
       accessToken: null,
       userEmail: null,
       userName: null,
@@ -379,7 +304,6 @@ export const getAuthStatus = (): GoogleAuthStatus => {
     clearAuthData();
     return {
       isAuthenticated: false,
-      idToken: null,
       accessToken: null,
       userEmail: null,
       userName: null,
@@ -390,7 +314,6 @@ export const getAuthStatus = (): GoogleAuthStatus => {
 
   return {
     isAuthenticated: true,
-    idToken,
     accessToken,
     userEmail,
     userName,
