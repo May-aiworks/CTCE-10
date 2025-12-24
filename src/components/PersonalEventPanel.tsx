@@ -74,6 +74,7 @@ interface PersonalEventPanelProps {
   onEventDoubleClick: (event: NormalizedEvent) => void;
   onCreateEvent: () => void;
   isWeekViewActive: boolean;
+  onUncategorizeEvent?: (eventId: string) => void;
 }
 
 export const PersonalEventPanel: React.FC<PersonalEventPanelProps> = ({
@@ -82,14 +83,59 @@ export const PersonalEventPanel: React.FC<PersonalEventPanelProps> = ({
   onEventDoubleClick,
   onCreateEvent,
   isWeekViewActive,
+  onUncategorizeEvent,
 }) => {
+  const [isOver, setIsOver] = React.useState(false);
+
   // Only show uncategorized events
   const uncategorizedEvents = events.filter(
     event => !categorizations.find(cat => cat.personalEventId === event.googleEventId)
   );
 
+  // Handle drag over
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(false);
+  };
+
+  // Handle drop - uncategorize event
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOver(false);
+
+    const eventData = e.dataTransfer.getData('application/json');
+    if (eventData && onUncategorizeEvent) {
+      try {
+        const droppedEvent: NormalizedEvent = JSON.parse(eventData);
+        // Check if this event is categorized
+        const isCategorized = categorizations.find(
+          cat => cat.personalEventId === droppedEvent.googleEventId
+        );
+
+        if (isCategorized) {
+          onUncategorizeEvent(droppedEvent.googleEventId);
+          console.log('🔄 Event uncategorized:', droppedEvent.title);
+        }
+      } catch (err) {
+        console.error('❌ Failed to parse dropped event:', err);
+      }
+    }
+  };
+
   return (
-    <div className={`personal-event-panel ${isWeekViewActive ? 'shrink' : ''}`}>
+    <div
+      className={`personal-event-panel ${isWeekViewActive ? 'shrink' : ''} ${isOver ? 'drag-over' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="panel-header">
         <h2 className="panel-title">Last Week's Schedule</h2>
         <button

@@ -300,6 +300,20 @@ export const WeeklyCategorization: React.FC = () => {
     }
   };
 
+  // Handle uncategorize event - remove categorization
+  const handleUncategorizeEvent = (eventId: string) => {
+    try {
+      // Remove categorization from state
+      setCategorizations(prev =>
+        prev.filter(c => c.personalEventId !== eventId)
+      );
+
+      console.log(`🔄 Event uncategorized: ${eventId}`);
+    } catch (err) {
+      console.error('❌ Failed to uncategorize event:', err);
+    }
+  };
+
   // Handle resizable splitter resize
   const handleSplitterResize = (newLeftWidth: number) => {
     setLeftColumnWidth(newLeftWidth);
@@ -563,6 +577,7 @@ export const WeeklyCategorization: React.FC = () => {
                 onEventDoubleClick={handleEventDoubleClick}
                 onCreateEvent={() => setShowCreateModal(true)}
                 isWeekViewActive={showWeekViewModal}
+                onUncategorizeEvent={handleUncategorizeEvent}
               />
 
               {/* Resizable Splitter (always shown) */}

@@ -4,11 +4,13 @@ import { NormalizedEvent } from '../services/googleCalendar';
 import { WeekCalendarView } from './WeekCalendarView';
 import './MasterEventPanel.css';
 
-// Event Card for Kanban Board
+// Event Card for Kanban Board (draggable)
 const KanbanEventCard: React.FC<{
   event: NormalizedEvent;
   onDoubleClick: (event: NormalizedEvent) => void;
 }> = ({ event, onDoubleClick }) => {
+  const [isDragging, setIsDragging] = React.useState(false);
+
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     const dateStr = date.toLocaleDateString('zh-TW', {
@@ -23,9 +25,32 @@ const KanbanEventCard: React.FC<{
     return `${dateStr} ${timeStr}`;
   };
 
+  // Handle drag start
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragging(true);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/json', JSON.stringify(event));
+    e.dataTransfer.setData('text/plain', event.title);
+    console.log('📦 Kanban card drag started:', event.title);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    console.log('✋ Kanban card drag ended');
+  };
+
+  const style: React.CSSProperties = {
+    opacity: isDragging ? 0.5 : 1,
+    cursor: 'grab',
+  };
+
   return (
     <div
       className="kanban-event-card"
+      style={style}
+      draggable={true}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onDoubleClick={() => onDoubleClick(event)}
     >
       <div className="kanban-event-title">{event.title}</div>
