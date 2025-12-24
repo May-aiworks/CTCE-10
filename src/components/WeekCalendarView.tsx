@@ -1,5 +1,6 @@
 import React from 'react';
-import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { NormalizedEvent } from '../services/googleCalendar';
 import './WeekCalendarView.css';
 
@@ -11,24 +12,53 @@ interface WeekCalendarViewProps {
   onEventUpdate?: (eventId: string, newStartDateTime: string, newEndDateTime: string) => void;
 }
 
-// Draggable Event Component
-const DraggableEvent: React.FC<{
+// 計算事件高度（基於時長）
+const HOUR_HEIGHT = 60; // 每小時 60px
+
+const calculateEventHeight = (durationMinutes: number): number => {
+  // 直接按比例計算高度，不減去 padding（因為 padding 是內部空間）
+  // 半小時 = 30px，1小時 = 60px，2小時 = 120px
+  const actualHeight = (durationMinutes / 60) * HOUR_HEIGHT;
+  return Math.max(actualHeight, 30); // 最小高度 30px（半小時）
+};
+
+// Sortable Event Component
+const SortableEvent: React.FC<{
   event: NormalizedEvent;
-  position: { column: number; row: number; top: number; height: number };
-}> = ({ event, position }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: event.id,
-    data: { event },
+  slotId: string;
+  dayIndex: number;
+  hour: number;
+}> = ({ event, slotId, dayIndex, hour }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: slotId,
+    data: { event, dayIndex, hour },
   });
 
+  // 計算分鐘偏移
+  const startTime = new Date(event.startDateTime);
+  const minuteOffset = startTime.getMinutes();
+
   const style: React.CSSProperties = {
-    gridColumn: position.column,
-    gridRow: position.row,
-    marginTop: `${position.top}px`,
-    height: `${Math.max(position.height, 30)}px`,
-    cursor: 'move',
+    transform: CSS.Transform.toString(transform),
+    transition,
     opacity: isDragging ? 0.5 : 1,
-    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    height: `${calculateEventHeight(event.durationMinutes)}px`,
+    position: 'absolute',
+    top: `${minuteOffset}px`,
+    left: '0',
+    right: '0',
+    gridColumn: dayIndex + 2, // +2 因為第一欄是時間標籤
+    gridRow: hour + 2, // 只佔據起始小時的格子
+    cursor: 'grab',
+    pointerEvents: 'auto',
+    zIndex: 10, // 確保事件在格子上方
   };
 
   return (
@@ -49,21 +79,35 @@ const DraggableEvent: React.FC<{
             hour12: false,
           })}
         </div>
+        <div className="event-duration">
+          {event.durationMinutes >= 60
+            ? `${Math.floor(event.durationMinutes / 60)}h ${event.durationMinutes % 60}m`
+            : `${event.durationMinutes}m`}
+        </div>
       </div>
     </div>
   );
 };
 
-// Droppable Time Slot Component (individual cell)
-const DroppableTimeSlot: React.FC<{
+// Sortable Time Slot Component
+const SortableTimeSlot: React.FC<{
+  slotId: string;
   hour: number;
   dayIndex: number;
-}> = ({ hour, dayIndex }) => {
-  const droppableId = `slot-${dayIndex}-${hour}`;
-  const { setNodeRef, isOver } = useDroppable({
-    id: droppableId,
-    data: { dayIndex, hour },
+  event?: NormalizedEvent;
+}> = ({ slotId, hour, dayIndex, event }) => {
+  const {
+    setNodeRef,
+    isOver,
+  } = useSortable({
+    id: slotId,
+    data: { hour, dayIndex, isEmpty: !event },
   });
+
+  // 如果這個格子有事件，不渲染空格子（事件會自己渲染）
+  if (event) {
+    return null;
+  }
 
   return (
     <div
@@ -76,33 +120,40 @@ const DroppableTimeSlot: React.FC<{
 };
 
 export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
-  courseId,
-  courseName,
   categorizedEvents,
-  weekOffset,
-  onEventUpdate,
 }) => {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
-  // Calculate event position in grid
-  const calculateEventPosition = (event: NormalizedEvent) => {
-    const startTime = new Date(event.startDateTime);
-    const dayOfWeek = startTime.getDay(); // 0-6 (Sunday-Saturday)
-    const hour = startTime.getHours();
-    const minute = startTime.getMinutes();
-    const durationMinutes = event.durationMinutes;
+  // 建立時間格子的映射表（哪個時間有哪個事件）
+  const eventsBySlot = React.useMemo(() => {
+    const map = new Map<string, NormalizedEvent>();
 
-    return {
-      column: dayOfWeek + 2, // +2 because first column is time labels
-      row: hour + 2, // +2 because first row is header
-      top: minute, // minute offset within the hour
-      height: durationMinutes, // height in minutes
-    };
-  };
+    categorizedEvents.forEach(event => {
+      const startTime = new Date(event.startDateTime);
+      const dayIndex = startTime.getDay();
+      const hour = startTime.getHours();
+      const slotId = `slot-${dayIndex}-${hour}`;
+      map.set(slotId, event);
+    });
+
+    return map;
+  }, [categorizedEvents]);
+
+  // 建立所有格子的 ID 列表（用於 SortableContext）
+  const allSlotIds = React.useMemo(() => {
+    const ids: string[] = [];
+    for (let h = 0; h < 24; h++) {
+      for (let d = 0; d < 7; d++) {
+        ids.push(`slot-${d}-${h}`);
+      }
+    }
+    return ids;
+  }, []);
 
   return (
-    <div className="week-calendar-view">
+    <SortableContext items={allSlotIds} strategy={rectSortingStrategy}>
+      <div className="week-calendar-view">
         <div className="calendar-grid">
           {/* Header Row */}
           <div className="time-header"></div>
@@ -112,7 +163,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
             </div>
           ))}
 
-          {/* Time slots */}
+          {/* Time slots and events */}
           {hours.map(hour => (
             <React.Fragment key={hour}>
               {/* Time label */}
@@ -121,30 +172,37 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
               </div>
 
               {/* Day columns */}
-              {days.map((_, dayIndex) => (
-                <DroppableTimeSlot
-                  key={`${hour}-${dayIndex}`}
-                  hour={hour}
-                  dayIndex={dayIndex}
-                />
-              ))}
+              {days.map((_, dayIndex) => {
+                const slotId = `slot-${dayIndex}-${hour}`;
+                const event = eventsBySlot.get(slotId);
+
+                // 如果有事件，渲染事件卡片
+                if (event) {
+                  return (
+                    <SortableEvent
+                      key={slotId}
+                      slotId={slotId}
+                      event={event}
+                      dayIndex={dayIndex}
+                      hour={hour}
+                    />
+                  );
+                }
+
+                // 沒有事件，渲染空格子
+                return (
+                  <SortableTimeSlot
+                    key={slotId}
+                    slotId={slotId}
+                    hour={hour}
+                    dayIndex={dayIndex}
+                  />
+                );
+              })}
             </React.Fragment>
           ))}
         </div>
-
-      {/* Render events */}
-      <div className="calendar-events">
-        {categorizedEvents.map(event => {
-          const pos = calculateEventPosition(event);
-          return (
-            <DraggableEvent
-              key={event.id}
-              event={event}
-              position={pos}
-            />
-          );
-        })}
       </div>
-    </div>
+    </SortableContext>
   );
 };
