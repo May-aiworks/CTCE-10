@@ -1,153 +1,339 @@
+/* Week Calendar View Container */
 .week-calendar-view {
   position: relative;
-  overflow: auto;
   height: 100%;
+  min-height: 0;
+  width: 100%;
   background: white;
-  z-index: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
-.calendar-grid {
-  display: grid;
-  grid-template-columns: 60px repeat(7, 1fr);
-  grid-template-rows: 40px repeat(24, 60px);
-  min-width: 800px;
-  position: relative;
-}
-
-/* Header styles */
-.time-header {
-  grid-column: 1;
-  grid-row: 1;
-  background: #f8f9fa;
-  border-right: 2px solid #e0e0e0;
-  border-bottom: 2px solid #e0e0e0;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-
-.day-header {
+/* 自訂週導航工具列 */
+.week-calendar-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
   background: #f8f9fa;
   border-bottom: 2px solid #e0e0e0;
-  border-right: 1px solid #e8e8e8;
+  flex-shrink: 0;
+}
+
+.week-nav-btn {
+  min-width: 40px;
+  height: 40px;
+  padding: 8px;
+  background: white;
+  border: 2px solid #d0d0d0;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #5f6368;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
+}
+
+.week-nav-btn:hover {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+.week-nav-btn:active {
+  transform: scale(0.95);
+}
+
+.week-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.week-label {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.week-range {
+  font-size: 13px;
+  color: #5f6368;
+}
+
+.week-reset-btn {
+  padding: 8px 16px;
+  background: white;
+  border: 2px solid #d0d0d0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #5f6368;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.week-reset-btn:hover {
+  background: #34a853;
+  border-color: #34a853;
+  color: white;
+}
+
+.week-reset-btn:active {
+  transform: scale(0.95);
+}
+
+/* 行事曆內容區域 */
+.week-calendar-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* React Big Calendar 自訂樣式覆寫 */
+
+/* 工具列樣式 */
+.rbc-toolbar {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.rbc-toolbar button {
+  padding: 6px 12px;
+  border: 1px solid #d0d0d0;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.rbc-toolbar button:hover {
+  background: #f0f0f0;
+  border-color: #667eea;
+}
+
+.rbc-toolbar button.rbc-active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+/* 時間網格樣式 */
+.rbc-time-view {
+  border: none;
+}
+
+.rbc-time-header {
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.rbc-time-header-content {
+  border-left: none;
+}
+
+/* 日期標題 */
+.rbc-header {
+  padding: 12px 4px;
   font-weight: 600;
   font-size: 14px;
   color: #333;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.day-header:last-child {
-  border-right: none;
-}
-
-/* Time labels */
-.time-label {
-  grid-column: 1;
   background: #f8f9fa;
-  border-right: 2px solid #e0e0e0;
-  border-bottom: 1px solid #e8e8e8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-bottom: 2px solid #e0e0e0;
+  border-left: 1px solid #e8e8e8;
+}
+
+.rbc-header:first-child {
+  border-left: none;
+}
+
+.rbc-header + .rbc-header {
+  border-left: 1px solid #e8e8e8;
+}
+
+/* 今天的標題高亮 */
+.rbc-today {
+  background-color: #e3f2fd;
+}
+
+/* 時間軸 */
+.rbc-time-content {
+  border-top: none;
+}
+
+.rbc-time-gutter {
+  background: #f8f9fa;
+}
+
+.rbc-timeslot-group {
+  border-left: 2px solid #e0e0e0;
+  min-height: 60px;
+}
+
+.rbc-time-slot {
+  border-top: 1px solid #e8e8e8;
+}
+
+/* 時間標籤 */
+.rbc-label {
+  padding: 0 8px;
   font-size: 12px;
   color: #666;
-  position: sticky;
-  left: 0;
-  z-index: 5;
 }
 
-/* Time slots */
-.time-slot {
-  border-right: 1px solid #e8e8e8;
-  border-bottom: 1px solid #e8e8e8;
-  position: relative;
+/* 日期欄位 */
+.rbc-day-slot {
+  border-left: 1px solid #e8e8e8;
+}
+
+.rbc-day-slot:first-child {
+  border-left: none;
+}
+
+.rbc-time-column {
   background: white;
-  transition: background-color 0.15s;
-  min-height: 60px; /* 確保每個格子至少 60px 高 */
 }
 
-.time-slot:hover {
-  background: #f9f9f9;
-}
-
-.time-slot.drag-over {
-  background: #e3f2fd;
-  border: 2px dashed #2196f3;
-}
-
-.time-slot:last-child {
-  border-right: none;
-}
-
-/* Calendar events - now inline in the grid */
-.calendar-event {
+/* 事件樣式 */
+.rbc-event {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  border: none;
   border-radius: 4px;
   padding: 4px 8px;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  cursor: grab;
-  overflow: hidden;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  /* position is set inline as 'absolute' */
+  transition: all 0.2s;
 }
 
-.calendar-event:active {
-  cursor: grabbing;
-}
-
-.calendar-event:hover {
+.rbc-event:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transform: scale(1.02);
-  z-index: 4;
 }
 
-.event-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  height: 100%;
-  overflow: hidden;
+.rbc-event.rbc-selected {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.event-title-sm {
-  font-size: 12px;
+.rbc-event-label {
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+.rbc-event-content {
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.event-time-sm {
-  font-size: 10px;
-  opacity: 0.9;
+/* 拖放樣式 */
+.rbc-addons-dnd .rbc-event {
+  cursor: grab;
 }
 
-.event-duration {
-  font-size: 9px;
+.rbc-addons-dnd .rbc-event:active {
+  cursor: grabbing;
+}
+
+.rbc-addons-dnd-dragging .rbc-event {
+  opacity: 0.5;
+}
+
+.rbc-addons-dnd-drag-preview {
   opacity: 0.8;
-  margin-top: auto;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive adjustments */
+/* Resize 手柄 */
+.rbc-addons-dnd-resize-anchor {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  z-index: 10;
+}
+
+.rbc-addons-dnd-resize-anchor:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 當前時間指示線 */
+.rbc-current-time-indicator {
+  background-color: #e74c3c;
+  height: 2px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* 選擇區域 */
+.rbc-slot-selection {
+  background-color: rgba(102, 126, 234, 0.2);
+  border: 1px solid #667eea;
+}
+
+/* 響應式調整 */
 @media (max-width: 1024px) {
-  .calendar-grid {
-    grid-template-columns: 50px repeat(7, minmax(80px, 1fr));
+  .rbc-toolbar {
+    flex-direction: column;
+    gap: 8px;
   }
 
-  .time-label {
+  .rbc-toolbar-label {
+    margin: 8px 0;
+  }
+
+  .rbc-header {
+    font-size: 12px;
+    padding: 8px 2px;
+  }
+
+  .rbc-label {
     font-size: 10px;
   }
 
-  .day-header {
-    font-size: 12px;
+  .rbc-event {
+    font-size: 10px;
+    padding: 2px 4px;
   }
+}
+
+/* 週視圖特定樣式 */
+.rbc-time-view .rbc-allday-cell {
+  display: none; /* 隱藏全天事件區域 */
+}
+
+/* 滾動條樣式 */
+.rbc-time-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rbc-time-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }

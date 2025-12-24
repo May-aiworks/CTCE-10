@@ -1,8 +1,18 @@
-import React from 'react';
-import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import React, { useMemo, useCallback } from 'react';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
+import withDragAndDrop, { EventInteractionArgs } from 'react-big-calendar/lib/addons/dragAndDrop';
+import moment from 'moment';
+import 'moment/locale/zh-tw';
 import { NormalizedEvent } from '../services/googleCalendar';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import './WeekCalendarView.css';
+
+// 設定 moment 為繁體中文
+moment.locale('zh-tw');
+
+const localizer = momentLocalizer(moment);
+const DragAndDropCalendar = withDragAndDrop<CalendarEvent>(Calendar);
 
 interface WeekCalendarViewProps {
   courseId: string;
@@ -12,197 +22,215 @@ interface WeekCalendarViewProps {
   onEventUpdate?: (eventId: string, newStartDateTime: string, newEndDateTime: string) => void;
 }
 
-// 計算事件高度（基於時長）
-const HOUR_HEIGHT = 60; // 每小時 60px
-
-const calculateEventHeight = (durationMinutes: number): number => {
-  // 直接按比例計算高度，不減去 padding（因為 padding 是內部空間）
-  // 半小時 = 30px，1小時 = 60px，2小時 = 120px
-  const actualHeight = (durationMinutes / 60) * HOUR_HEIGHT;
-  return Math.max(actualHeight, 30); // 最小高度 30px（半小時）
-};
-
-// Sortable Event Component
-const SortableEvent: React.FC<{
-  event: NormalizedEvent;
-  slotId: string;
-  dayIndex: number;
-  hour: number;
-}> = ({ event, slotId, dayIndex, hour }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: slotId,
-    data: { event, dayIndex, hour },
-  });
-
-  // 計算分鐘偏移
-  const startTime = new Date(event.startDateTime);
-  const minuteOffset = startTime.getMinutes();
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    height: `${calculateEventHeight(event.durationMinutes)}px`,
-    position: 'absolute',
-    top: `${minuteOffset}px`,
-    left: '0',
-    right: '0',
-    gridColumn: dayIndex + 2, // +2 因為第一欄是時間標籤
-    gridRow: hour + 2, // 只佔據起始小時的格子
-    cursor: 'grab',
-    pointerEvents: 'auto',
-    zIndex: 10, // 確保事件在格子上方
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      className="calendar-event"
-      style={style}
-      {...attributes}
-      {...listeners}
-      title={`${event.title}\n${event.startDateTime} - ${event.endDateTime}`}
-    >
-      <div className="event-content">
-        <div className="event-title-sm">{event.title}</div>
-        <div className="event-time-sm">
-          {new Date(event.startDateTime).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          })}
-        </div>
-        <div className="event-duration">
-          {event.durationMinutes >= 60
-            ? `${Math.floor(event.durationMinutes / 60)}h ${event.durationMinutes % 60}m`
-            : `${event.durationMinutes}m`}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Sortable Time Slot Component
-const SortableTimeSlot: React.FC<{
-  slotId: string;
-  hour: number;
-  dayIndex: number;
-  event?: NormalizedEvent;
-}> = ({ slotId, hour, dayIndex, event }) => {
-  const {
-    setNodeRef,
-    isOver,
-  } = useSortable({
-    id: slotId,
-    data: { hour, dayIndex, isEmpty: !event },
-  });
-
-  // 如果這個格子有事件，不渲染空格子（事件會自己渲染）
-  if (event) {
-    return null;
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`time-slot ${isOver ? 'drag-over' : ''}`}
-      data-hour={hour}
-      data-day={dayIndex}
-    />
-  );
-};
+// 定義 React Big Calendar 的事件格式
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  resource: NormalizedEvent; // 保留原始事件資料
+}
 
 export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   categorizedEvents,
+  onEventUpdate,
+  weekOffset,
 }) => {
-  const hours = Array.from({ length: 24 }, (_, i) => i);
-  const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-
-  // 建立時間格子的映射表（哪個時間有哪個事件）
-  const eventsBySlot = React.useMemo(() => {
-    const map = new Map<string, NormalizedEvent>();
-
-    categorizedEvents.forEach(event => {
-      const startTime = new Date(event.startDateTime);
-      const dayIndex = startTime.getDay();
-      const hour = startTime.getHours();
-      const slotId = `slot-${dayIndex}-${hour}`;
-      map.set(slotId, event);
-    });
-
-    return map;
+  // 將 NormalizedEvent 轉換為 React Big Calendar 的格式
+  const events: CalendarEvent[] = useMemo(() => {
+    return categorizedEvents.map(event => ({
+      id: event.id,
+      title: event.title,
+      start: new Date(event.startDateTime),
+      end: new Date(event.endDateTime),
+      resource: event,
+    }));
   }, [categorizedEvents]);
 
-  // 建立所有格子的 ID 列表（用於 SortableContext）
-  const allSlotIds = React.useMemo(() => {
-    const ids: string[] = [];
-    for (let h = 0; h < 24; h++) {
-      for (let d = 0; d < 7; d++) {
-        ids.push(`slot-${d}-${h}`);
-      }
+  // 計算週的起始日期（根據 weekOffset）
+  const weekStartDate = useMemo(() => {
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 (Sunday) - 6 (Saturday)
+    const diff = now.getDate() - currentDay + (weekOffset * 7);
+    const weekStart = new Date(now);
+    weekStart.setDate(diff);
+    weekStart.setHours(0, 0, 0, 0);
+    return weekStart;
+  }, [weekOffset]);
+
+
+  // 處理事件拖放
+  const handleEventDrop = useCallback(
+    ({ event, start, end }: EventInteractionArgs<CalendarEvent>) => {
+      if (!onEventUpdate) return;
+
+      const startISO = (start as Date).toISOString();
+      const endISO = (end as Date).toISOString();
+
+      console.log(`📅 Event dropped: ${event.title}`, {
+        old: { start: event.start, end: event.end },
+        new: { start: startISO, end: endISO },
+      });
+
+      onEventUpdate(event.id, startISO, endISO);
+    },
+    [onEventUpdate]
+  );
+
+  // 處理事件 resize（調整時長）
+  const handleEventResize = useCallback(
+    ({ event, start, end }: EventInteractionArgs<CalendarEvent>) => {
+      if (!onEventUpdate) return;
+
+      const startISO = (start as Date).toISOString();
+      const endISO = (end as Date).toISOString();
+
+      console.log(`⏰ Event resized: ${event.title}`, {
+        old: { start: event.start, end: event.end },
+        new: { start: startISO, end: endISO },
+      });
+
+      onEventUpdate(event.id, startISO, endISO);
+    },
+    [onEventUpdate]
+  );
+
+  // 自訂事件樣式
+  const eventStyleGetter = useCallback(() => {
+    return {
+      style: {
+        backgroundColor: '#667eea',
+        backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '4px',
+        opacity: 0.9,
+        color: 'white',
+        border: 'none',
+        display: 'block',
+      },
+    };
+  }, []);
+
+  // 自訂時間格式
+  const formats = useMemo(() => ({
+    timeGutterFormat: 'HH:mm',
+    eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) => {
+      return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
+    },
+    dayFormat: 'ddd M/D',
+    dayHeaderFormat: 'YYYY年M月D日 dddd',
+  }), []);
+
+  // 繁體中文訊息
+  const messages = useMemo(() => ({
+    date: '日期',
+    time: '時間',
+    event: '事件',
+    allDay: '全天',
+    week: '週',
+    work_week: '工作週',
+    day: '日',
+    month: '月',
+    previous: '上一週',
+    next: '下一週',
+    yesterday: '昨天',
+    tomorrow: '明天',
+    today: '今天',
+    agenda: '議程',
+    noEventsInRange: '此時段沒有事件',
+    showMore: (total: number) => `+${total} 更多`,
+  }), []);
+
+  // 處理原生 drop 事件 - 從外部拖入
+  const handleNativeDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+
+    const eventData = e.dataTransfer.getData('application/json');
+    if (!eventData || !onEventUpdate) return;
+
+    try {
+      const draggedEvent: NormalizedEvent = JSON.parse(eventData);
+
+      // 計算拖放位置的時間
+      const calendarElement = e.currentTarget.querySelector('.rbc-time-content');
+      if (!calendarElement) return;
+
+      const rect = calendarElement.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // 計算是哪一天（假設有7天）
+      const dayWidth = rect.width / 7;
+      const dayIndex = Math.floor(x / dayWidth);
+
+      // 計算是幾點（假設24小時，每小時60px）
+      const hourHeight = 60;
+      const hour = Math.floor(y / hourHeight);
+      const minute = Math.floor((y % hourHeight) / hourHeight * 60);
+
+      // 對齊到30分鐘
+      const alignedMinute = Math.round(minute / 30) * 30;
+
+      // 使用計算好的 weekStartDate
+      const newStart = new Date(weekStartDate);
+      newStart.setDate(weekStartDate.getDate() + dayIndex);
+      newStart.setHours(hour, alignedMinute, 0, 0);
+
+      // 保持原始時長
+      const duration = draggedEvent.durationMinutes || 60;
+      const newEnd = new Date(newStart);
+      newEnd.setMinutes(newEnd.getMinutes() + duration);
+
+      console.log('📅 Dropped at:', {
+        weekOffset,
+        weekStart: weekStartDate.toISOString(),
+        dayIndex,
+        hour,
+        minute: alignedMinute,
+        newStart: newStart.toISOString()
+      });
+      onEventUpdate(draggedEvent.id, newStart.toISOString(), newEnd.toISOString());
+    } catch (err) {
+      console.error('❌ Failed to handle drop:', err);
     }
-    return ids;
+  }, [onEventUpdate, weekStartDate, weekOffset]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   }, []);
 
   return (
-    <SortableContext items={allSlotIds} strategy={rectSortingStrategy}>
-      <div className="week-calendar-view">
-        <div className="calendar-grid">
-          {/* Header Row */}
-          <div className="time-header"></div>
-          {days.map((day, index) => (
-            <div key={index} className="day-header">
-              {day}
-            </div>
-          ))}
-
-          {/* Time slots and events */}
-          {hours.map(hour => (
-            <React.Fragment key={hour}>
-              {/* Time label */}
-              <div className="time-label">
-                {hour.toString().padStart(2, '0')}:00
-              </div>
-
-              {/* Day columns */}
-              {days.map((_, dayIndex) => {
-                const slotId = `slot-${dayIndex}-${hour}`;
-                const event = eventsBySlot.get(slotId);
-
-                // 如果有事件，渲染事件卡片
-                if (event) {
-                  return (
-                    <SortableEvent
-                      key={slotId}
-                      slotId={slotId}
-                      event={event}
-                      dayIndex={dayIndex}
-                      hour={hour}
-                    />
-                  );
-                }
-
-                // 沒有事件，渲染空格子
-                return (
-                  <SortableTimeSlot
-                    key={slotId}
-                    slotId={slotId}
-                    hour={hour}
-                    dayIndex={dayIndex}
-                  />
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </div>
+    <div className="week-calendar-view">
+      <div
+        className="week-calendar-content"
+        onDragOver={handleDragOver}
+        onDrop={handleNativeDrop}
+      >
+        <DragAndDropCalendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          defaultView="week"
+          views={['week', 'day']}
+          date={weekStartDate} // 設定顯示的週
+          onNavigate={() => {}} // 禁用內建的導航（使用自訂的週導航）
+          step={30} // 30 分鐘間隔
+          timeslots={2} // 每小時顯示 2 格（每格 30 分鐘）
+          min={new Date(0, 0, 0, 0, 0, 0)} // 從 00:00 開始
+          max={new Date(0, 0, 0, 23, 59, 59)} // 到 23:59 結束
+          onEventDrop={handleEventDrop}
+          onEventResize={handleEventResize}
+          resizable
+          draggableAccessor={() => true} // 所有事件都可拖動
+          eventPropGetter={eventStyleGetter}
+          formats={formats}
+          messages={messages}
+          style={{ height: '100%' }}
+          toolbar={false} // 隱藏內建 toolbar，使用自訂週導航
+          scrollToTime={new Date(0, 0, 0, 8, 0, 0)} // 預設滾動到早上 8 點
+        />
       </div>
-    </SortableContext>
+    </div>
   );
 };

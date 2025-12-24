@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { DndContext, DragEndEvent, DragOverlay } from '@dnd-kit/core';
 import { RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ResizableSplitter } from './ResizableSplitter';
@@ -42,7 +41,6 @@ export const WeeklyCategorization: React.FC = () => {
   const [selectedCourseForWeekView, setSelectedCourseForWeekView] = useState<string | null>(null);
   const [showWeekViewModal, setShowWeekViewModal] = useState(false);
   const [leftColumnWidth, setLeftColumnWidth] = useState<number>(400);
-  const [activeEvent, setActiveEvent] = useState<NormalizedEvent | null>(null);
 
   // Load weekly personal events from Google Calendar
   const loadLastWeekEvents = useCallback(async () => {
@@ -272,6 +270,36 @@ export const WeeklyCategorization: React.FC = () => {
     setShowWeekViewModal(true);
   };
 
+  // Handle event drop on course card - 只分類，不改時間
+  const handleEventDropOnCourse = (courseId: string, eventDataStr: string) => {
+    try {
+      const draggedEvent: NormalizedEvent = JSON.parse(eventDataStr);
+      const masterEvent = allMasterEvents.find(m => m.id === courseId);
+
+      if (!masterEvent) {
+        console.error('❌ Master event not found:', courseId);
+        return;
+      }
+
+      console.log(`🎯 Categorizing event to course (no time change): ${masterEvent.title}`);
+
+      // 建立分類，但不改變事件時間
+      const newCategorization = createCategorization(draggedEvent, masterEvent);
+
+      // 更新本地狀態
+      setCategorizations(prev => {
+        // 移除該事件的舊分類
+        const filtered = prev.filter(c => c.personalEventId !== draggedEvent.googleEventId);
+        // 加入新分類
+        return [...filtered, newCategorization];
+      });
+
+      console.log(`✅ Event categorized to ${masterEvent.title} (time unchanged)`);
+    } catch (err) {
+      console.error('❌ Failed to categorize event:', err);
+    }
+  };
+
   // Handle resizable splitter resize
   const handleSplitterResize = (newLeftWidth: number) => {
     setLeftColumnWidth(newLeftWidth);
@@ -366,125 +394,31 @@ export const WeeklyCategorization: React.FC = () => {
       )
     );
 
+    // 如果在週曆視圖中拖放，自動建立歸類
+    if (selectedCourseForWeekView) {
+      const masterEvent = allMasterEvents.find(m => m.id === selectedCourseForWeekView);
+      if (masterEvent) {
+        console.log(`🎯 Auto-categorizing to course: ${masterEvent.title}`);
+
+        // Create categorization
+        const newCategorization = createCategorization(event, masterEvent);
+
+        // Update local state
+        setCategorizations(prev => {
+          // Remove any existing categorization for this event
+          const filtered = prev.filter(c => c.personalEventId !== event.googleEventId);
+          // Add new categorization
+          return [...filtered, newCategorization];
+        });
+
+        console.log(`✅ Event categorized to ${masterEvent.title}`);
+      }
+    }
+
     console.log(`✅ Event ${event.title} updated to ${newStartDateTime}`);
   };
 
-  // Get the start of the week based on weekOffset
-  const getWeekStart = () => {
-    const now = new Date();
-    const currentDay = now.getDay(); // 0 (Sunday) - 6 (Saturday)
-    const diff = now.getDate() - currentDay + (weekOffset * 7);
 
-    // Create a new Date object to avoid mutating 'now'
-    const weekStart = new Date(now);
-    weekStart.setDate(diff);
-    weekStart.setHours(0, 0, 0, 0);
-
-    console.log('📅 Week start calculated:', {
-      today: now.toISOString(),
-      currentDay,
-      weekOffset,
-      weekStart: weekStart.toISOString(),
-      weekStartDay: weekStart.getDay()
-    });
-
-    return weekStart;
-  };
-
-  // Handle drag start - track the active event for DragOverlay
-  const handleDragStart = (event: any) => {
-    const draggedEvent = event.active.data.current?.event as NormalizedEvent;
-    if (draggedEvent) {
-      setActiveEvent(draggedEvent);
-    }
-  };
-
-  // Handle drag end - for dragging from PersonalEventPanel to WeekCalendarView
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    console.log('🎯 handleDragEnd triggered', { active: active.id, over: over?.id });
-
-    // Clear active event
-    setActiveEvent(null);
-
-    if (!over) {
-      console.log('❌ No drop target');
-      return;
-    }
-
-    // Get the dragged event from PersonalEventPanel
-    const draggedEvent = active.data.current?.event as NormalizedEvent;
-    if (!draggedEvent) {
-      console.log('❌ No dragged event data');
-      return;
-    }
-
-    console.log('📦 Dragged event:', draggedEvent.title);
-    console.log('📍 Drop target data:', over.data.current);
-
-    // Check if dropped on a time slot
-    const dropData = over.data.current as { hour: number; dayIndex: number } | undefined;
-    if (dropData) {
-      const { hour, dayIndex } = dropData;
-
-      console.log(`✅ Dropped on: Day ${dayIndex}, Hour ${hour}`);
-
-      // Calculate new start time based on the drop position
-      const weekStart = getWeekStart();
-      const newStartDate = new Date(weekStart);
-      newStartDate.setDate(weekStart.getDate() + dayIndex);
-      newStartDate.setHours(hour, 0, 0, 0);
-
-      // Calculate new end time (preserve duration)
-      const newEndDate = new Date(newStartDate);
-      newEndDate.setMinutes(newEndDate.getMinutes() + draggedEvent.durationMinutes);
-
-      console.log('🕐 New time calculated:', {
-        weekStart: weekStart.toISOString(),
-        weekStartDay: weekStart.getDay(),
-        dayIndex,
-        targetDate: newStartDate.toISOString(),
-        targetDayOfWeek: newStartDate.getDay(),
-        dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-        expectedDay: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][newStartDate.getDay()],
-        hour,
-        duration: draggedEvent.durationMinutes,
-        start: newStartDate.toISOString(),
-        end: newEndDate.toISOString()
-      });
-
-      // Update the event time
-      handleEventUpdate(
-        draggedEvent.id,
-        newStartDate.toISOString(),
-        newEndDate.toISOString()
-      );
-
-      // If dropped on WeekCalendarView, create categorization
-      if (selectedCourseForWeekView) {
-        const masterEvent = allMasterEvents.find(m => m.id === selectedCourseForWeekView);
-        if (masterEvent) {
-          console.log(`🎯 Creating categorization to course: ${masterEvent.title}`);
-
-          // Create categorization
-          const newCategorization = createCategorization(draggedEvent, masterEvent);
-
-          // Update local state
-          setCategorizations(prev => {
-            // Remove any existing categorization for this event
-            const filtered = prev.filter(c => c.personalEventId !== draggedEvent.googleEventId);
-            // Add new categorization
-            return [...filtered, newCategorization];
-          });
-
-          console.log(`✅ Event categorized to ${masterEvent.title}`);
-        }
-      }
-    } else {
-      console.log('⚠️ Drop target is not a time slot');
-    }
-  };
 
   // Get courses that are selected by user
   const coursesInProgress = allMasterEvents.filter(masterEvent =>
@@ -492,7 +426,6 @@ export const WeeklyCategorization: React.FC = () => {
   );
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="weekly-categorization">
       <div className="page-header">
         <div className="header-left">
@@ -658,6 +591,7 @@ export const WeeklyCategorization: React.FC = () => {
                 })}
                 weekOffset={weekOffset}
                 onEventUpdate={handleEventUpdate}
+                onEventDropOnCourse={handleEventDropOnCourse}
               />
             </div>
 
@@ -857,28 +791,5 @@ export const WeeklyCategorization: React.FC = () => {
       )}
 
       </div>
-
-      {/* DragOverlay for showing dragged event */}
-      <DragOverlay dropAnimation={null}>
-        {activeEvent ? (
-          <div className="drag-overlay-event">
-            <div className="event-title">{activeEvent.title}</div>
-            <div className="event-time">
-              {activeEvent.startDateTime && new Date(activeEvent.startDateTime).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-              })}
-              {activeEvent.startDateTime && activeEvent.endDateTime && ' – '}
-              {activeEvent.endDateTime && new Date(activeEvent.endDateTime).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-              })}
-            </div>
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
   );
 };

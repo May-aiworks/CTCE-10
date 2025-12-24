@@ -1,17 +1,13 @@
 import React from 'react';
-import { useDraggable } from '@dnd-kit/core';
 import { NormalizedEvent } from '../services/googleCalendar';
 import './PersonalEventPanel.css';
 
-// Event Card Component
+// Event Card Component with native HTML5 drag and drop
 const EventCard: React.FC<{
   event: NormalizedEvent;
   onDoubleClick: (event: NormalizedEvent) => void;
 }> = ({ event, onDoubleClick }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: event.id,
-    data: { event },
-  });
+  const [isDragging, setIsDragging] = React.useState(false);
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -27,20 +23,35 @@ const EventCard: React.FC<{
     return `${dateStr} ${timeStr}`;
   };
 
+  // Handle drag start - set the event data
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragging(true);
+    // 將事件資料存入 dataTransfer
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/json', JSON.stringify(event));
+    e.dataTransfer.setData('text/plain', event.title);
+
+    console.log('📦 Drag started:', event.title);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    console.log('✋ Drag ended');
+  };
+
   const style: React.CSSProperties = {
     opacity: isDragging ? 0.5 : 1,
     cursor: 'grab',
-    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
   };
 
   return (
     <div
-      ref={setNodeRef}
       className="event-card"
       style={style}
+      draggable={true}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onDoubleClick={() => onDoubleClick(event)}
-      {...attributes}
-      {...listeners}
     >
       <div className="event-title">{event.title}</div>
       <div className="event-time">
