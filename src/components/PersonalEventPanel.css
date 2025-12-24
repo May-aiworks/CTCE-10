@@ -4,7 +4,10 @@
   border-right: 1px solid #e8e8e8;
   transition: all 0.3s ease;
   overflow-y: auto;
-  max-height: calc(100vh - 300px);
+  min-height: calc(100vh - 350px);
+  max-height: calc(100vh - 250px);
+  display: flex;
+  flex-direction: column;
 }
 
 .personal-event-panel.shrink {
@@ -69,6 +72,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .event-card {

@@ -40,7 +40,7 @@ export const WeeklyCategorization: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedCourseForWeekView, setSelectedCourseForWeekView] = useState<string | null>(null);
   const [showWeekViewModal, setShowWeekViewModal] = useState(false);
-  const [leftColumnWidth, setLeftColumnWidth] = useState<number>(400);
+  const [leftColumnWidth, setLeftColumnWidth] = useState<number>(550);
 
   // Load weekly personal events from Google Calendar
   const loadLastWeekEvents = useCallback(async () => {
