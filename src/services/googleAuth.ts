@@ -415,12 +415,9 @@ export const getUserEmail = (): string | null => {
 };
 
 /**
- * 登出（清除本地資料 + 停用自動登入）
+ * 登出（僅清除本地資料，保留 Google 端授權）
  */
 export const logout = (callback?: () => void): void => {
-  const userEmail = localStorage.getItem(STORAGE_KEYS.USER_EMAIL);
-  const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-
   // 清除本地資料
   clearAuthData();
 
@@ -428,26 +425,10 @@ export const logout = (callback?: () => void): void => {
     // 停用 One Tap 自動登入
     window.google!.accounts.id.disableAutoSelect();
     console.log('✅ Auto-select disabled');
-
-    // 撤銷 Google 認證（可選）
-    if (userEmail) {
-      window.google!.accounts.id.revoke(userEmail, () => {
-        console.log('✅ Google credentials revoked');
-      });
-    }
-
-    // 撤銷 Access Token
-    if (accessToken) {
-      window.google!.accounts.oauth2.revoke(accessToken, () => {
-        console.log('✅ Google Access Token revoked');
-        if (callback) callback();
-      });
-    } else {
-      if (callback) callback();
-    }
-  } else {
-    if (callback) callback();
   }
+
+  console.log('✅ Logged out (authorization retained)');
+  if (callback) callback();
 };
 
 /**
