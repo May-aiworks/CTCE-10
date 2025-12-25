@@ -158,18 +158,21 @@
   position: relative;
   background: white;
   border-radius: 16px; /* 8pt grid: ✓ */
-  padding: 32px; /* 8pt grid: ✓ */
+  padding: 24px; /* 8pt grid: ✓ - 減少 padding */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  min-height: 600px; /* 8pt grid: ✓ */
+  min-height: calc(100vh - 200px); /* 增加最小高度 */
+  display: flex;
+  flex-direction: column;
 }
 
 .two-column-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0; /* No gap - splitter handles spacing */
-  margin-bottom: 64px; /* 8pt grid: ✓ */
+  margin-bottom: 80px; /* 8pt grid: ✓ - 為 submit 按鈕保留空間 */
   position: relative;
-  transition: grid-template-columns 0.3s ease;
+  flex: 1; /* 讓布局填滿容器 */
+  min-height: 0; /* 允許子元素正確計算高度 */
 }
 
 /* Component-specific styles have been moved to PersonalEventPanel.css and MasterEventPanel.css */

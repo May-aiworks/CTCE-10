@@ -4,8 +4,7 @@
   border-right: 1px solid #e8e8e8;
   transition: all 0.3s ease;
   overflow-y: auto;
-  min-height: calc(100vh - 350px);
-  max-height: calc(100vh - 250px);
+  height: 100%; /* 填滿父容器 */
   display: flex;
   flex-direction: column;
 }

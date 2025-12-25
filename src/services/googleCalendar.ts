@@ -393,8 +393,9 @@ const LOCAL_EVENTS_KEY = 'local_personal_events';
 export interface CreateLocalEventRequest {
   title: string;
   description?: string;
-  startDateTime: string; // ISO 8601 format
-  endDateTime: string;   // ISO 8601 format
+  startDateTime?: string; // ISO 8601 format (optional)
+  endDateTime?: string;   // ISO 8601 format (optional)
+  durationMinutes: number; // Required duration in minutes
   location?: string;
 }
 
@@ -431,10 +432,17 @@ export const createLocalPersonalEvent = (
 ): NormalizedEvent => {
   const events = getLocalPersonalEvents();
 
-  const startTime = new Date(request.startDateTime);
-  const endTime = new Date(request.endDateTime);
-  const durationMs = endTime.getTime() - startTime.getTime();
-  const durationMinutes = Math.floor(durationMs / 60000);
+  // 如果有提供開始和結束時間，計算時長；否則使用提供的 durationMinutes
+  let durationMinutes = request.durationMinutes;
+  let startDateTime = request.startDateTime || '';
+  let endDateTime = request.endDateTime || '';
+
+  if (request.startDateTime && request.endDateTime) {
+    const startTime = new Date(request.startDateTime);
+    const endTime = new Date(request.endDateTime);
+    const durationMs = endTime.getTime() - startTime.getTime();
+    durationMinutes = Math.floor(durationMs / 60000);
+  }
 
   const newEvent: NormalizedEvent = {
     id: `local_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
@@ -442,8 +450,8 @@ export const createLocalPersonalEvent = (
     title: request.title,
     description: request.description || '',
     location: request.location || '',
-    startDateTime: request.startDateTime,
-    endDateTime: request.endDateTime,
+    startDateTime: startDateTime,
+    endDateTime: endDateTime,
     isAllDay: false,
     durationMinutes,
     status: 'confirmed',
@@ -484,18 +492,23 @@ export const updateLocalPersonalEvent = (
     event.location = updates.location;
   }
   if (updates.startDateTime !== undefined) {
-    event.startDateTime = updates.startDateTime;
+    event.startDateTime = updates.startDateTime || '';
   }
   if (updates.endDateTime !== undefined) {
-    event.endDateTime = updates.endDateTime;
+    event.endDateTime = updates.endDateTime || '';
+  }
+  if (updates.durationMinutes !== undefined) {
+    event.durationMinutes = updates.durationMinutes;
   }
 
-  // Recalculate duration if times changed
+  // Recalculate duration if both times are provided and changed
   if (updates.startDateTime !== undefined || updates.endDateTime !== undefined) {
-    const startTime = new Date(event.startDateTime);
-    const endTime = new Date(event.endDateTime);
-    const durationMs = endTime.getTime() - startTime.getTime();
-    event.durationMinutes = Math.floor(durationMs / 60000);
+    if (event.startDateTime && event.endDateTime) {
+      const startTime = new Date(event.startDateTime);
+      const endTime = new Date(event.endDateTime);
+      const durationMs = endTime.getTime() - startTime.getTime();
+      event.durationMinutes = Math.floor(durationMs / 60000);
+    }
   }
 
   events[eventIndex] = event;

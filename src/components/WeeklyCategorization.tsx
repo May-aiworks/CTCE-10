@@ -633,12 +633,17 @@ export const WeeklyCategorization: React.FC = () => {
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
+                const durationMinutes = parseInt(formData.get('durationMinutes') as string, 10);
+                const startDateTime = formData.get('startDateTime') as string;
+                const endDateTime = formData.get('endDateTime') as string;
+
                 handleSaveEditedEvent({
                   title: formData.get('title') as string,
                   description: formData.get('description') as string,
                   location: formData.get('location') as string,
-                  startDateTime: formData.get('startDateTime') as string,
-                  endDateTime: formData.get('endDateTime') as string,
+                  startDateTime: startDateTime || undefined,
+                  endDateTime: endDateTime || undefined,
+                  durationMinutes: durationMinutes,
                 });
               }}
             >
@@ -667,26 +672,37 @@ export const WeeklyCategorization: React.FC = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="startDateTime">開始時間 *</label>
+                  <label htmlFor="startDateTime">開始時間</label>
                   <input
                     type="datetime-local"
                     id="startDateTime"
                     name="startDateTime"
                     defaultValue={editingEvent.startDateTime?.slice(0, 16)}
-                    required
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="endDateTime">結束時間 *</label>
+                  <label htmlFor="endDateTime">結束時間</label>
                   <input
                     type="datetime-local"
                     id="endDateTime"
                     name="endDateTime"
                     defaultValue={editingEvent.endDateTime?.slice(0, 16)}
-                    required
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="durationMinutes">行程時長(分鐘) *</label>
+                <input
+                  type="number"
+                  id="durationMinutes"
+                  name="durationMinutes"
+                  defaultValue={editingEvent.durationMinutes}
+                  required
+                  min="1"
+                  placeholder="例如：60"
+                />
               </div>
 
               <div className="form-group">
@@ -718,7 +734,7 @@ export const WeeklyCategorization: React.FC = () => {
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>新增 Personal Event (本地)</h2>
+              <h2>新增 Personal Event </h2>
               <button className="modal-close" onClick={() => setShowCreateModal(false)}>
                 ✕
               </button>
@@ -729,13 +745,15 @@ export const WeeklyCategorization: React.FC = () => {
                 const formData = new FormData(e.currentTarget);
                 const startDateTime = formData.get('startDateTime') as string;
                 const endDateTime = formData.get('endDateTime') as string;
+                const durationMinutes = parseInt(formData.get('durationMinutes') as string, 10);
 
                 handleCreateLocalEvent({
                   title: formData.get('title') as string,
                   description: formData.get('description') as string,
                   location: formData.get('location') as string,
-                  startDateTime: new Date(startDateTime).toISOString(),
-                  endDateTime: new Date(endDateTime).toISOString(),
+                  startDateTime: startDateTime ? new Date(startDateTime).toISOString() : undefined,
+                  endDateTime: endDateTime ? new Date(endDateTime).toISOString() : undefined,
+                  durationMinutes: durationMinutes,
                 });
               }}
             >
@@ -762,24 +780,34 @@ export const WeeklyCategorization: React.FC = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="create-startDateTime">開始時間 *</label>
+                  <label htmlFor="create-startDateTime">開始時間</label>
                   <input
                     type="datetime-local"
                     id="create-startDateTime"
                     name="startDateTime"
-                    required
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="create-endDateTime">結束時間 *</label>
+                  <label htmlFor="create-endDateTime">結束時間</label>
                   <input
                     type="datetime-local"
                     id="create-endDateTime"
                     name="endDateTime"
-                    required
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="create-durationMinutes">行程時長(分鐘) *</label>
+                <input
+                  type="number"
+                  id="create-durationMinutes"
+                  name="durationMinutes"
+                  required
+                  min="1"
+                  placeholder="例如：60"
+                />
               </div>
 
               <div className="form-group">
