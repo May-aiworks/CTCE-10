@@ -13,11 +13,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
-  padding: 16px 24px;
+  margin-bottom: 16px; /* 減少底部間距，讓容器更高 */
+  padding: 12px 20px; /* 減少 padding */
   /* iOS Safe Area Support for horizontal padding */
-  padding-left: max(24px, env(safe-area-inset-left));
-  padding-right: max(24px, env(safe-area-inset-right));
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -157,10 +157,10 @@
 .content-container {
   position: relative;
   background: white;
-  border-radius: 16px; /* 8pt grid: ✓ */
-  padding: 24px; /* 8pt grid: ✓ - 減少 padding */
+  border-radius: 12px;
+  padding: 16px; /* 減少 padding 讓內容區域更大 */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  min-height: calc(100vh - 200px); /* 增加最小高度 */
+  min-height: calc(100vh - 140px); /* 進一步增加高度，減少上下空間 */
   display: flex;
   flex-direction: column;
 }
