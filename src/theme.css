@@ -67,11 +67,11 @@
      BACKGROUND SYSTEM - SOFT WARM TONES
      ======================================== */
 
-  --bg-primary: #f7f5f2;
-  --bg-secondary: #f0ede8;
-  --bg-tertiary: #e8e4de;
+  --bg-primary: #fdfcfb;
+  --bg-secondary: #f9f8f6;
+  --bg-tertiary: #f3f1ee;
   --bg-accent: var(--color-accent-50);
-  --bg-hover: #ebe7e1;
+  --bg-hover: #f5f3f0;
   --bg-overlay: rgba(0, 0, 0, 0.4);
 
   /* ========================================
