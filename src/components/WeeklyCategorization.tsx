@@ -624,7 +624,7 @@ export const WeeklyCategorization: React.FC = () => {
         <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>編輯事件 (本地)</h2>
+              <h2>編輯事件</h2>
               <button className="modal-close" onClick={() => setShowEditModal(false)}>
                 ✕
               </button>
