@@ -220,6 +220,29 @@
   transition: all 0.2s;
 }
 
+/* 確保事件容器也是 100% 寬度 */
+.rbc-events-container {
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+}
+
+/* 橫向填滿整個日期欄位 - 強制覆蓋 inline styles */
+.rbc-time-content .rbc-event[style],
+.rbc-day-slot .rbc-event[style],
+.rbc-events-container .rbc-event[style],
+div.rbc-event[style] {
+  width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: none !important;
+  min-width: 100% !important;
+}
+
 .rbc-event:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transform: scale(1.02);

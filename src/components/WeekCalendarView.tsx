@@ -106,6 +106,10 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
         color: 'white',
         border: 'none',
         display: 'block',
+        width: '100%',
+        left: '0%',
+        marginLeft: 0,
+        marginRight: 0,
       },
     };
   }, []);
