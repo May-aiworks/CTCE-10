@@ -148,6 +148,30 @@ export const WeeklyCategorization: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      // 清理孤兒記錄：過濾掉已經不存在的事件
+      const eventIds = new Set(lastWeekEvents.map(e => e.googleEventId));
+      const validCategorizations = categorizations.filter(cat => {
+        const isValid = eventIds.has(cat.personalEventId);
+        if (!isValid) {
+          console.warn(`⚠️ Removing orphan categorization: ${cat.personalEventTitle} (${cat.personalEventId})`);
+        }
+        return isValid;
+      });
+
+      // 如果有清理掉記錄，更新 sessionStorage 和 state
+      if (validCategorizations.length !== categorizations.length) {
+        const removedCount = categorizations.length - validCategorizations.length;
+        console.log(`🗑️ Removed ${removedCount} orphan categorization(s)`);
+        sessionStorage.setItem('event_categorizations', JSON.stringify(validCategorizations));
+        setCategorizations(validCategorizations);
+      }
+
+      if (validCategorizations.length === 0) {
+        alert('沒有有效的記錄可以提交');
+        setLoading(false);
+        return;
+      }
+
       // Export categorizations to submit format
       const records = exportCategorizationsForSubmit();
 
@@ -345,9 +369,12 @@ export const WeeklyCategorization: React.FC = () => {
   const handleUncategorizeEvent = (eventId: string) => {
     try {
       // Remove categorization from state
-      setCategorizations(prev =>
-        prev.filter(c => c.personalEventId !== eventId)
-      );
+      setCategorizations(prev => {
+        const updatedCategorizations = prev.filter(c => c.personalEventId !== eventId);
+        // 同步更新到 sessionStorage
+        sessionStorage.setItem('event_categorizations', JSON.stringify(updatedCategorizations));
+        return updatedCategorizations;
+      });
 
       console.log(`🔄 Event uncategorized: ${eventId}`);
     } catch (err) {

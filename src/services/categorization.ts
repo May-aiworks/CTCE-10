@@ -18,6 +18,7 @@ export interface CategorizationData {
   masterEventTitle: string;
   personalEventStart: string;
   personalEventEnd: string;
+  durationMinutes?: number; // 事件時長（分鐘）- 用於手動事件
   notes?: string;
   createdAt: string;
 }
@@ -70,6 +71,7 @@ export const createCategorization = (
     masterEventTitle: masterEvent.title,
     personalEventStart: personalEvent.startDateTime,
     personalEventEnd: personalEvent.endDateTime,
+    durationMinutes: personalEvent.durationMinutes, // 儲存事件的時長
     notes: notes || `歸類於 ${new Date().toLocaleString('zh-TW')}`,
     createdAt: new Date().toISOString(),
   };
@@ -158,18 +160,68 @@ export const clearAllCategorizations = (): void => {
 export const exportCategorizationsForSubmit = () => {
   const categorizations = getAllCategorizations();
 
-  return categorizations.map(cat => {
-    const startTime = new Date(cat.personalEventStart);
-    const endTime = new Date(cat.personalEventEnd);
-    const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+  const records = categorizations.map((cat, index) => {
+    // 判斷是否為手動新增的本地事件（ID 以 local_ 開頭）
+    const isLocalEvent = cat.personalEventId.startsWith('local_');
 
-    return {
-      eventName: cat.personalEventTitle,
-      eventType: 'calendar' as const,
-      startTime: cat.personalEventStart,
-      endTime: cat.personalEventEnd,
-      duration: durationHours,
-      courseId: cat.masterEventId,
-    };
+    console.log(`📋 Record ${index + 1}:`, {
+      personalEventId: cat.personalEventId,
+      personalEventTitle: cat.personalEventTitle,
+      masterEventId: cat.masterEventId,
+      personalEventStart: cat.personalEventStart,
+      personalEventEnd: cat.personalEventEnd,
+      isLocalEvent,
+    });
+
+    if (isLocalEvent) {
+      // 手動事件：使用 manual 類型，不需要 startTime/endTime
+      let durationMinutes = 0;
+
+      // 優先使用 durationMinutes（如果有的話）
+      if (cat.durationMinutes && cat.durationMinutes > 0) {
+        durationMinutes = cat.durationMinutes;
+        console.log(`⏱️ Using durationMinutes: ${durationMinutes} min`);
+      } else if (cat.personalEventStart && cat.personalEventEnd &&
+          cat.personalEventStart.trim() !== '' && cat.personalEventEnd.trim() !== '') {
+        // 如果沒有 durationMinutes，從時間計算
+        const startTime = new Date(cat.personalEventStart);
+        const endTime = new Date(cat.personalEventEnd);
+        // 確保時間是有效的
+        if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime())) {
+          durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+          console.log(`⏱️ Calculated from time: ${durationMinutes} min`);
+        }
+      }
+
+      const record = {
+        eventName: cat.personalEventTitle,
+        eventType: 'manual' as const,
+        duration: durationMinutes,
+        courseId: cat.masterEventId,
+      };
+
+      console.log(`✅ Manual record ${index + 1}:`, record);
+      return record;
+    } else {
+      // Google Calendar 事件：使用 calendar 類型，需要 startTime/endTime
+      const startTime = new Date(cat.personalEventStart);
+      const endTime = new Date(cat.personalEventEnd);
+      const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+
+      const record = {
+        eventName: cat.personalEventTitle,
+        eventType: 'calendar' as const,
+        startTime: cat.personalEventStart,
+        endTime: cat.personalEventEnd,
+        duration: durationMinutes,
+        courseId: cat.masterEventId,
+      };
+
+      console.log(`✅ Calendar record ${index + 1}:`, record);
+      return record;
+    }
   });
+
+  console.log('📤 Final records to submit:', records);
+  return records;
 };
