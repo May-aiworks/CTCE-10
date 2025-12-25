@@ -241,6 +241,7 @@ export const MasterEventPanel: React.FC<MasterEventPanelProps> = ({
               categorizedEvents={categorizedEvents}
               weekOffset={weekOffset}
               onEventUpdate={onEventUpdate}
+              onEventEdit={onEventDoubleClick}
             />
           </div>
         </div>

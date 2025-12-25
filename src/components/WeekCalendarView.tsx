@@ -20,6 +20,7 @@ interface WeekCalendarViewProps {
   categorizedEvents: NormalizedEvent[];
   weekOffset: number;
   onEventUpdate?: (eventId: string, newStartDateTime: string, newEndDateTime: string) => void;
+  onEventEdit?: (event: NormalizedEvent) => void;
 }
 
 // 定義 React Big Calendar 的事件格式
@@ -34,6 +35,7 @@ interface CalendarEvent {
 export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   categorizedEvents,
   onEventUpdate,
+  onEventEdit,
   weekOffset,
 }) => {
   // 將 NormalizedEvent 轉換為 React Big Calendar 的格式
@@ -203,6 +205,13 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
+  // 處理雙擊事件 - 打開編輯模態框
+  const handleDoubleClickEvent = useCallback((event: CalendarEvent) => {
+    if (onEventEdit) {
+      onEventEdit(event.resource); // 傳遞原始的 NormalizedEvent
+    }
+  }, [onEventEdit]);
+
   return (
     <div className="week-calendar-view">
       <div
@@ -225,6 +234,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
           max={new Date(0, 0, 0, 23, 59, 59)} // 到 23:59 結束
           onEventDrop={handleEventDrop}
           onEventResize={handleEventResize}
+          onDoubleClickEvent={handleDoubleClickEvent} // 雙擊事件編輯
           resizable
           draggableAccessor={() => true} // 所有事件都可拖動
           eventPropGetter={eventStyleGetter}
