@@ -11,7 +11,7 @@ import { renderGoogleButton } from '../services/googleAuth';
 import './LoginPage.css';
 
 export const LoginPage: React.FC = () => {
-  const { login, loading, error, isAuthenticated } = useAuth();
+  const { login, error, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   // 初始化 Google Identity 並渲染按鈕

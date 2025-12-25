@@ -13,7 +13,7 @@ import {
   clearAllLocalOperations,
 } from '../services/googleCalendar';
 import { getMasterEvents, MasterEvent } from '../services/masterEvents';
-import { getUserCourseCache } from '../services/appsScript';
+import { getUserCourseCache, updateUserCourseCache } from '../services/appsScript';
 import {
   getAllCategorizations,
   exportCategorizationsForSubmit,
@@ -214,6 +214,29 @@ export const WeeklyCategorization: React.FC = () => {
       sessionStorage.setItem('selected_course_ids', JSON.stringify(newIds));
       return newIds;
     });
+  };
+
+  // Handle save course selection to Google Sheets
+  const handleSaveCourseSelection = async () => {
+    try {
+      setLoading(true);
+      console.log('💾 Saving course selection to Google Sheets:', selectedCourseIds);
+
+      const result = await updateUserCourseCache(selectedCourseIds);
+
+      if (result.success) {
+        console.log('✅ Course cache updated:', result);
+        setShowCourseMenu(false);
+      } else {
+        throw new Error(result.message || '儲存課程快取失敗');
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '儲存課程快取失敗';
+      console.error('❌ Failed to save course cache:', errorMsg);
+      alert(`❌ 儲存失敗：${errorMsg}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle remove course and its categorizations
@@ -612,9 +635,10 @@ export const WeeklyCategorization: React.FC = () => {
             <div className="course-menu-footer">
               <button
                 className="course-menu-ok-button"
-                onClick={() => setShowCourseMenu(false)}
+                onClick={handleSaveCourseSelection}
+                disabled={loading}
               >
-                完成勾選
+                完成勾選並儲存
               </button>
             </div>
           </div>
