@@ -9,18 +9,26 @@ const EventCard: React.FC<{
 }> = ({ event, onDoubleClick }) => {
   const [isDragging, setIsDragging] = React.useState(false);
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string, includeDate: boolean = true) => {
     const date = new Date(dateString);
-    const dateStr = date.toLocaleDateString('zh-TW', {
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const timeStr = date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-    return `${dateStr} ${timeStr}`;
+    if (includeDate) {
+      const dateStr = date.toLocaleDateString('zh-TW', {
+        month: '2-digit',
+        day: '2-digit',
+      });
+      const timeStr = date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      return `${dateStr} ${timeStr}`;
+    } else {
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    }
   };
 
   // Handle drag start - set the event data
@@ -55,13 +63,9 @@ const EventCard: React.FC<{
     >
       <div className="event-title">{event.title}</div>
       <div className="event-time">
-        {event.startDateTime && formatDateTime(event.startDateTime)}
+        {event.startDateTime && formatDateTime(event.startDateTime, true)}
         {event.startDateTime && event.endDateTime && ' – '}
-        {event.endDateTime && new Date(event.endDateTime).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        })}
+        {event.endDateTime && formatDateTime(event.endDateTime, false)}
         {!event.startDateTime && !event.endDateTime && '時間未設定'}
       </div>
     </div>

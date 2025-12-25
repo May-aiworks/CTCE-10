@@ -210,6 +210,19 @@ export const WeeklyCategorization: React.FC = () => {
     setShowEditModal(true);
   };
 
+  // Convert UTC ISO string to local datetime-local format
+  const toLocalDateTimeString = (isoString: string | undefined): string => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    // Format: YYYY-MM-DDTHH:mm
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   // Handle save edited event (local only)
   const handleSaveEditedEvent = (updatedEvent: Partial<NormalizedEvent>) => {
     if (!editingEvent) return;
@@ -677,7 +690,7 @@ export const WeeklyCategorization: React.FC = () => {
                     type="datetime-local"
                     id="startDateTime"
                     name="startDateTime"
-                    defaultValue={editingEvent.startDateTime?.slice(0, 16)}
+                    defaultValue={toLocalDateTimeString(editingEvent.startDateTime)}
                   />
                 </div>
 
@@ -687,7 +700,7 @@ export const WeeklyCategorization: React.FC = () => {
                     type="datetime-local"
                     id="endDateTime"
                     name="endDateTime"
-                    defaultValue={editingEvent.endDateTime?.slice(0, 16)}
+                    defaultValue={toLocalDateTimeString(editingEvent.endDateTime)}
                   />
                 </div>
               </div>
