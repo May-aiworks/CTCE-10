@@ -16,12 +16,45 @@
   display: none;
 }
 
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  gap: 20px;
+}
+
 .panel-title {
   font-size: 28px;
   font-weight: 700;
-  margin: 0 0 32px 0;
+  margin: 0;
   color: #1a1a1a;
   letter-spacing: 0.36px;
+}
+
+.week-overview-button {
+  padding: 10px 20px;
+  background: white;
+  color: #5f6368;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.week-overview-button:hover {
+  background: #f8f9fa;
+  border-color: #5f6368;
+  color: #1a1a1a;
+  transform: translateY(-1px);
+}
+
+.week-overview-button:active {
+  transform: translateY(0);
+  background: #e8eaed;
 }
 
 /* Kanban Board Layout */

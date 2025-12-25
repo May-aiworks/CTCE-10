@@ -72,10 +72,9 @@ const KanbanColumn: React.FC<{
   course: MasterEvent;
   events: NormalizedEvent[];
   onRemove: (courseId: string) => void;
-  onDoubleClick: (courseId: string) => void;
   onEventDrop?: (courseId: string, eventData: string) => void;
   onEventDoubleClick: (event: NormalizedEvent) => void;
-}> = ({ course, events, onRemove, onDoubleClick, onEventDrop, onEventDoubleClick }) => {
+}> = ({ course, events, onRemove, onEventDrop, onEventDoubleClick }) => {
   const [isOver, setIsOver] = React.useState(false);
 
   const handleRemoveClick = (e: React.MouseEvent) => {
@@ -115,11 +114,7 @@ const KanbanColumn: React.FC<{
       onDrop={handleDrop}
     >
       <div className="kanban-column-header">
-        <div
-          className="kanban-column-title"
-          onDoubleClick={() => onDoubleClick(course.id)}
-          title="雙擊展開周視圖"
-        >
+        <div className="kanban-column-title">
           {course.title}
           <span className="kanban-event-count">({events.length})</span>
         </div>
@@ -153,7 +148,7 @@ const KanbanColumn: React.FC<{
 interface MasterEventPanelProps {
   courses: MasterEvent[];
   onRemoveCourse: (courseId: string) => void;
-  onCourseDoubleClick: (courseId: string) => void;
+  onOpenWeekOverview: () => void;
   isWeekViewActive: boolean;
   weekViewCourseId: string | null;
   onCloseWeekView: () => void;
@@ -168,7 +163,7 @@ interface MasterEventPanelProps {
 export const MasterEventPanel: React.FC<MasterEventPanelProps> = ({
   courses,
   onRemoveCourse,
-  onCourseDoubleClick,
+  onOpenWeekOverview,
   isWeekViewActive,
   weekViewCourseId,
   onCloseWeekView,
@@ -179,10 +174,6 @@ export const MasterEventPanel: React.FC<MasterEventPanelProps> = ({
   onEventDropOnCourse,
   onEventDoubleClick,
 }) => {
-  const selectedCourse = weekViewCourseId
-    ? courses.find(c => c.id === weekViewCourseId)
-    : null;
-
   // Group categorized events by course
   const getEventsForCourse = (courseId: string) => {
     const relatedCategorizations = categorizations.filter(
@@ -197,7 +188,16 @@ export const MasterEventPanel: React.FC<MasterEventPanelProps> = ({
     <div className="master-event-panel-wrapper">
       {/* Kanban Board (hidden when week view is active) */}
       <div className={`master-event-panel ${isWeekViewActive ? 'hide' : ''}`}>
-        <h2 className="panel-title">Courses in Progress</h2>
+        <div className="panel-header">
+          <h2 className="panel-title">Courses in Progress</h2>
+          <button
+            className="week-overview-button"
+            onClick={onOpenWeekOverview}
+            title="查看所有課程的周視圖總覽"
+          >
+            📅 周視圖總覽
+          </button>
+        </div>
         <div className="kanban-board">
           {courses.length === 0 ? (
             <div className="empty-state">
@@ -210,7 +210,6 @@ export const MasterEventPanel: React.FC<MasterEventPanelProps> = ({
                 course={course}
                 events={getEventsForCourse(course.id)}
                 onRemove={onRemoveCourse}
-                onDoubleClick={onCourseDoubleClick}
                 onEventDrop={onEventDropOnCourse}
                 onEventDoubleClick={onEventDoubleClick}
               />
@@ -220,12 +219,10 @@ export const MasterEventPanel: React.FC<MasterEventPanelProps> = ({
       </div>
 
       {/* Week View Panel (slides in from right) */}
-      {isWeekViewActive && selectedCourse && (
+      {isWeekViewActive && (
         <div className="week-view-panel">
           <div className="week-view-header">
-            <h2 className="week-view-title">
-              {selectedCourse.title} - 周視圖
-            </h2>
+            <h2 className="week-view-title">周視圖總覽</h2>
             <button
               className="week-view-close"
               onClick={onCloseWeekView}
@@ -236,8 +233,8 @@ export const MasterEventPanel: React.FC<MasterEventPanelProps> = ({
           </div>
           <div className="week-view-content">
             <WeekCalendarView
-              courseId={selectedCourse.id}
-              courseName={selectedCourse.title}
+              courseId="overview"
+              courseName="所有課程"
               categorizedEvents={categorizedEvents}
               weekOffset={weekOffset}
               onEventUpdate={onEventUpdate}

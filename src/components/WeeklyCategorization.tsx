@@ -352,9 +352,9 @@ export const WeeklyCategorization: React.FC = () => {
     }
   };
 
-  // Handle double click on course card to open week view
-  const handleCourseDoubleClick = (courseId: string) => {
-    setSelectedCourseForWeekView(courseId);
+  // Handle click on week overview button to open week view
+  const handleOpenWeekOverview = () => {
+    setSelectedCourseForWeekView(null); // null means show all courses
     setShowWeekViewModal(true);
   };
 
@@ -687,7 +687,7 @@ export const WeeklyCategorization: React.FC = () => {
               <MasterEventPanel
                 courses={coursesInProgress}
                 onRemoveCourse={handleRemoveCourse}
-                onCourseDoubleClick={handleCourseDoubleClick}
+                onOpenWeekOverview={handleOpenWeekOverview}
                 isWeekViewActive={showWeekViewModal}
                 weekViewCourseId={selectedCourseForWeekView}
                 onCloseWeekView={() => setShowWeekViewModal(false)}
