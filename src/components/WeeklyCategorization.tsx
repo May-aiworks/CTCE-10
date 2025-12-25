@@ -712,8 +712,8 @@ export const WeeklyCategorization: React.FC = () => {
                   title: formData.get('title') as string,
                   description: formData.get('description') as string,
                   location: formData.get('location') as string,
-                  startDateTime: startDateTime || undefined,
-                  endDateTime: endDateTime || undefined,
+                  startDateTime: startDateTime ? new Date(startDateTime).toISOString() : undefined,
+                  endDateTime: endDateTime ? new Date(endDateTime).toISOString() : undefined,
                   durationMinutes: durationMinutes,
                 });
               }}
