@@ -33,7 +33,19 @@ export const WeeklyCategorization: React.FC = () => {
   const [categorizations, setCategorizations] = useState<CategorizationData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>(() => {
+    // 從 sessionStorage 載入已選擇的課程
+    const stored = sessionStorage.getItem('selected_course_ids');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (err) {
+        console.error('❌ Failed to parse selected course IDs:', err);
+        return [];
+      }
+    }
+    return [];
+  });
   const [showCourseMenu, setShowCourseMenu] = useState(false);
   const [editingEvent, setEditingEvent] = useState<NormalizedEvent | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -77,15 +89,24 @@ export const WeeklyCategorization: React.FC = () => {
     }
   }, [isAuthenticated]);
 
-  // Load user's course cache from Google Sheets
+  // Load user's course cache from Google Sheets (only if sessionStorage is empty)
   const loadUserCourseCache = useCallback(async () => {
     if (!isAuthenticated) return;
+
+    // 如果 sessionStorage 已有課程選擇，則不從 Google Sheets 載入
+    const stored = sessionStorage.getItem('selected_course_ids');
+    if (stored) {
+      console.log('🎓 Using course selection from sessionStorage (skipping API call)');
+      return;
+    }
 
     try {
       const response = await getUserCourseCache();
       if (response.success && response.courseIds) {
-        setSelectedCourseIds(response.courseIds); // 顯示使用者快取中的所有課程
-        console.log('🎓 Loaded user course cache:', response.courseIds);
+        setSelectedCourseIds(response.courseIds);
+        // 儲存到 sessionStorage
+        sessionStorage.setItem('selected_course_ids', JSON.stringify(response.courseIds));
+        console.log('🎓 Loaded user course cache from API:', response.courseIds);
       }
     } catch (err) {
       console.error('❌ Failed to load user course cache:', err);
@@ -161,11 +182,13 @@ export const WeeklyCategorization: React.FC = () => {
   // Handle course selection toggle
   const handleCourseToggle = (courseId: string) => {
     setSelectedCourseIds(prev => {
-      if (prev.includes(courseId)) {
-        return prev.filter(id => id !== courseId);
-      } else {
-        return [...prev, courseId];
-      }
+      const newIds = prev.includes(courseId)
+        ? prev.filter(id => id !== courseId)
+        : [...prev, courseId];
+
+      // 儲存到 sessionStorage
+      sessionStorage.setItem('selected_course_ids', JSON.stringify(newIds));
+      return newIds;
     });
   };
 
@@ -188,7 +211,12 @@ export const WeeklyCategorization: React.FC = () => {
     }
 
     // Remove course from selected list
-    setSelectedCourseIds(prev => prev.filter(id => id !== courseId));
+    setSelectedCourseIds(prev => {
+      const newIds = prev.filter(id => id !== courseId);
+      // 儲存到 sessionStorage
+      sessionStorage.setItem('selected_course_ids', JSON.stringify(newIds));
+      return newIds;
+    });
 
     // Delete all related categorizations
     if (recordCount > 0) {
@@ -348,8 +376,9 @@ export const WeeklyCategorization: React.FC = () => {
       e.id.startsWith('local_') || e.googleEventId.startsWith('local_')
     ).length;
     const categorizationsCount = categorizations.length;
+    const selectedCoursesCount = selectedCourseIds.length;
 
-    if (localEventsCount === 0 && categorizationsCount === 0) {
+    if (localEventsCount === 0 && categorizationsCount === 0 && selectedCoursesCount === 0) {
       alert('沒有需要清除的本地操作');
       return;
     }
@@ -358,7 +387,8 @@ export const WeeklyCategorization: React.FC = () => {
       `確定要清除本次所有操作嗎？\n\n` +
       `這將會清除：\n` +
       `- ${localEventsCount} 個本地新增的事件\n` +
-      `- ${categorizationsCount} 筆歸類記錄\n\n` +
+      `- ${categorizationsCount} 筆歸類記錄\n` +
+      `- ${selectedCoursesCount} 個已選擇的課程\n\n` +
       `此操作無法復原。`;
 
     if (!window.confirm(confirmMessage)) {
@@ -373,6 +403,7 @@ export const WeeklyCategorization: React.FC = () => {
       prev.filter(e => !e.id.startsWith('local_') && !e.googleEventId.startsWith('local_'))
     );
     setCategorizations([]);
+    setSelectedCourseIds([]);
 
     alert('✅ 已清除本次所有操作');
     console.log('✅ All local operations cleared');

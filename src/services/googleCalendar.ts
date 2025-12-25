@@ -544,7 +544,7 @@ export const clearLocalPersonalEvents = (): void => {
 };
 
 /**
- * 清除本次所有操作（本地 events + 歸類記錄）
+ * 清除本次所有操作（本地 events + 歸類記錄 + 課程選擇）
  * 用於手動重置當前 session 的所有本地操作
  */
 export const clearAllLocalOperations = (): void => {
@@ -556,7 +556,10 @@ export const clearAllLocalOperations = (): void => {
   // 清除歸類記錄
   sessionStorage.removeItem('event_categorizations');
 
-  console.log('✅ All local operations cleared (personal events & categorizations)');
+  // 清除課程選擇
+  sessionStorage.removeItem('selected_course_ids');
+
+  console.log('✅ All local operations cleared (personal events, categorizations & course selection)');
 };
 
 /**
