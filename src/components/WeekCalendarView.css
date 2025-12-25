@@ -1,47 +1,52 @@
+/**
+ * Week Calendar View - Soft Pantone-inspired UI
+ * Clean calendar design with minimal aesthetics
+ */
+
 /* Week Calendar View Container */
 .week-calendar-view {
   position: relative;
   height: 100%;
   min-height: 0;
   width: 100%;
-  background: white;
+  background: var(--bg-primary);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-/* 自訂週導航工具列 */
+/* Custom Week Navigation Toolbar */
 .week-calendar-toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: #f8f9fa;
-  border-bottom: 2px solid #e0e0e0;
+  gap: var(--gap-tight);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
   flex-shrink: 0;
 }
 
 .week-nav-btn {
   min-width: 40px;
   height: 40px;
-  padding: 8px;
-  background: white;
-  border: 2px solid #d0d0d0;
-  border-radius: 8px;
-  font-size: 16px;
-  color: #5f6368;
+  padding: var(--space-2);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-callout);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .week-nav-btn:hover {
-  background: #667eea;
-  border-color: #667eea;
-  color: white;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--text-inverse);
 }
 
 .week-nav-btn:active {
@@ -53,43 +58,43 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .week-label {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a1a;
+  font-size: var(--font-size-title-3);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
 }
 
 .week-range {
-  font-size: 13px;
-  color: #5f6368;
+  font-size: var(--font-size-footnote);
+  color: var(--text-secondary);
 }
 
 .week-reset-btn {
-  padding: 8px 16px;
-  background: white;
-  border: 2px solid #d0d0d0;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #5f6368;
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-subheadline);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   white-space: nowrap;
 }
 
 .week-reset-btn:hover {
-  background: #34a853;
-  border-color: #34a853;
-  color: white;
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: var(--text-inverse);
 }
 
 .week-reset-btn:active {
   transform: scale(0.95);
 }
 
-/* 行事曆內容區域 */
+/* Calendar Content Area */
 .week-calendar-content {
   flex: 1;
   overflow: hidden;
@@ -99,61 +104,61 @@
   flex-direction: column;
 }
 
-/* React Big Calendar 自訂樣式覆寫 */
+/* React Big Calendar Custom Styles Override */
 
-/* 工具列樣式 */
+/* Toolbar Styles */
 .rbc-toolbar {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid #e0e0e0;
-  background: #f8f9fa;
+  border-bottom: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
 }
 
 .rbc-toolbar button {
-  padding: 6px 12px;
-  border: 1px solid #d0d0d0;
-  background: white;
-  border-radius: 4px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-primary);
+  border-radius: var(--radius-small);
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
+  font-size: var(--font-size-subheadline);
+  transition: all var(--transition-fast);
 }
 
 .rbc-toolbar button:hover {
-  background: #f0f0f0;
-  border-color: #667eea;
+  background: var(--bg-hover);
+  border-color: var(--color-accent);
 }
 
 .rbc-toolbar button.rbc-active {
-  background: #667eea;
-  color: white;
-  border-color: #667eea;
+  background: var(--color-accent);
+  color: var(--text-inverse);
+  border-color: var(--color-accent);
 }
 
-/* 時間網格樣式 */
+/* Time Grid Styles */
 .rbc-time-view {
   border: none;
 }
 
 .rbc-time-header {
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-medium);
 }
 
 .rbc-time-header-content {
   border-left: none;
 }
 
-/* 日期標題 */
+/* Date Headers */
 .rbc-header {
-  padding: 12px 4px;
-  font-weight: 600;
-  font-size: 14px;
-  color: #333;
-  background: #f8f9fa;
-  border-bottom: 2px solid #e0e0e0;
-  border-left: 1px solid #e8e8e8;
+  padding: var(--space-3) var(--space-1);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-subheadline);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+  border-left: 1px solid var(--border-light);
 }
 
 .rbc-header:first-child {
@@ -161,42 +166,42 @@
 }
 
 .rbc-header + .rbc-header {
-  border-left: 1px solid #e8e8e8;
+  border-left: 1px solid var(--border-light);
 }
 
-/* 今天的標題高亮 */
+/* Today Header Highlight */
 .rbc-today {
-  background-color: #e3f2fd;
+  background-color: var(--color-accent-50);
 }
 
-/* 時間軸 */
+/* Time Axis */
 .rbc-time-content {
   border-top: none;
 }
 
 .rbc-time-gutter {
-  background: #f8f9fa;
+  background: var(--bg-secondary);
 }
 
 .rbc-timeslot-group {
-  border-left: 2px solid #e0e0e0;
+  border-left: 1px solid var(--border-medium);
   min-height: 60px;
 }
 
 .rbc-time-slot {
-  border-top: 1px solid #e8e8e8;
+  border-top: 1px solid var(--border-light);
 }
 
-/* 時間標籤 */
+/* Time Labels */
 .rbc-label {
-  padding: 0 8px;
-  font-size: 12px;
-  color: #666;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-caption-1);
+  color: var(--text-tertiary);
 }
 
-/* 日期欄位 */
+/* Day Columns */
 .rbc-day-slot {
-  border-left: 1px solid #e8e8e8;
+  border-left: 1px solid var(--border-light);
 }
 
 .rbc-day-slot:first-child {
@@ -204,23 +209,23 @@
 }
 
 .rbc-time-column {
-  background: white;
+  background: var(--bg-primary);
 }
 
-/* 事件樣式 */
+/* Event Styles - Blue Gray */
 .rbc-event {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #607d8b;
   border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
+  border-radius: var(--radius-small);
+  padding: var(--space-1) var(--space-2);
   color: white;
-  font-size: 12px;
+  font-size: var(--font-size-caption-1);
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s;
+  box-shadow: var(--shadow-subtle);
+  transition: all var(--transition-fast);
 }
 
-/* 確保事件容器也是 100% 寬度 */
+/* Ensure event container is full width */
 .rbc-events-container {
   width: 100% !important;
   margin-left: 0 !important;
@@ -229,7 +234,7 @@
   right: 0 !important;
 }
 
-/* 橫向填滿整個日期欄位 - 強制覆蓋 inline styles */
+/* Horizontally fill entire day column - force override inline styles */
 .rbc-time-content .rbc-event[style],
 .rbc-day-slot .rbc-event[style],
 .rbc-events-container .rbc-event[style],
@@ -244,28 +249,29 @@ div.rbc-event[style] {
 }
 
 .rbc-event:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-soft);
   transform: scale(1.02);
+  background: #546e7a;
 }
 
 .rbc-event.rbc-selected {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  background: #455a64;
+  box-shadow: var(--shadow-medium);
 }
 
 .rbc-event-label {
-  font-size: 10px;
+  font-size: var(--font-size-caption-2);
   opacity: 0.9;
 }
 
 .rbc-event-content {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* 拖放樣式 */
+/* Drag & Drop Styles */
 .rbc-addons-dnd .rbc-event {
   cursor: grab;
 }
@@ -280,10 +286,10 @@ div.rbc-event[style] {
 
 .rbc-addons-dnd-drag-preview {
   opacity: 0.8;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-strong);
 }
 
-/* Resize 手柄 */
+/* Resize Handle */
 .rbc-addons-dnd-resize-anchor {
   position: absolute;
   bottom: 0;
@@ -298,65 +304,65 @@ div.rbc-event[style] {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* 當前時間指示線 */
+/* Current Time Indicator */
 .rbc-current-time-indicator {
-  background-color: #e74c3c;
+  background-color: var(--color-accent);
   height: 2px;
   pointer-events: none;
   z-index: 3;
 }
 
-/* 選擇區域 */
+/* Selection Area */
 .rbc-slot-selection {
-  background-color: rgba(102, 126, 234, 0.2);
-  border: 1px solid #667eea;
+  background-color: var(--color-accent-alpha-20);
+  border: 1px solid var(--color-accent);
 }
 
-/* 響應式調整 */
+/* Responsive Adjustments */
 @media (max-width: 1024px) {
   .rbc-toolbar {
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .rbc-toolbar-label {
-    margin: 8px 0;
+    margin: var(--space-2) 0;
   }
 
   .rbc-header {
-    font-size: 12px;
-    padding: 8px 2px;
+    font-size: var(--font-size-caption-1);
+    padding: var(--space-2) var(--space-1);
   }
 
   .rbc-label {
-    font-size: 10px;
+    font-size: var(--font-size-caption-2);
   }
 
   .rbc-event {
-    font-size: 10px;
-    padding: 2px 4px;
+    font-size: var(--font-size-caption-2);
+    padding: 2px var(--space-1);
   }
 }
 
-/* 週視圖特定樣式 */
+/* Week View Specific Styles */
 .rbc-time-view .rbc-allday-cell {
-  display: none; /* 隱藏全天事件區域 */
+  display: none; /* Hide all-day events area */
 }
 
-/* 滾動條樣式 */
+/* Scrollbar Styles */
 .rbc-time-content::-webkit-scrollbar {
   width: 8px;
 }
 
 .rbc-time-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bg-secondary);
 }
 
 .rbc-time-content::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
+  background: var(--color-gray-400);
+  border-radius: var(--radius-small);
 }
 
 .rbc-time-content::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--color-gray-600);
 }

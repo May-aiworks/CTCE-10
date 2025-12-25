@@ -1,79 +1,83 @@
+/**
+ * Login Page - Soft Pantone-inspired with Apple Design Philosophy
+ * Clean, minimal, premium aesthetic
+ */
+
 .login-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ff6801;
-  padding: 16px; /* 8pt grid: 20→16 */
-  /* iOS Safe Area Support */
-  padding-top: max(16px, env(safe-area-inset-top));
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-  padding-left: max(16px, env(safe-area-inset-left));
-  padding-right: max(16px, env(safe-area-inset-right));
+  background: var(--color-accent);
+  padding: var(--space-4);
+  padding-top: max(var(--space-4), env(safe-area-inset-top));
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  padding-left: max(var(--space-4), env(safe-area-inset-left));
+  padding-right: max(var(--space-4), env(safe-area-inset-right));
 }
 
 .login-container {
-  background: white;
-  border-radius: 16px; /* 8pt grid: ✓ */
-  padding: 40px; /* 8pt grid: ✓ */
-  max-width: 400px; /* 8pt grid: ✓ */
+  background: var(--bg-primary);
+  border-radius: var(--radius-xlarge);
+  padding: var(--space-10);
+  max-width: 400px;
   width: 100%;
-  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.1); /* 8pt grid: 20→24 */
+  box-shadow: var(--shadow-modal);
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 32px; /* 8pt grid: ✓ */
+  margin-bottom: var(--gap-loose);
 }
 
 .login-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 80px; /* 8pt grid: ✓ */
-  height: 80px; /* 8pt grid: ✓ */
-  border-radius: 50%;
-  background: #ff6801;
-  color: white;
-  margin-bottom: 16px; /* 8pt grid: 20→16 */
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--text-inverse);
+  margin-bottom: var(--space-4);
 }
 
 .login-header h1 {
-  font-size: 28px; /* iOS Title 1 */
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: #1a202c;
-  letter-spacing: 0.36px;
+  font-size: var(--font-size-title-1);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--space-2) 0;
+  color: var(--text-primary);
+  letter-spacing: var(--letter-spacing-title-1);
 }
 
 .login-header p {
-  font-size: 17px; /* iOS Body */
-  color: #718096;
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
   margin: 0;
-  letter-spacing: -0.41px;
+  letter-spacing: var(--letter-spacing-body);
 }
 
 .login-content {
   display: flex;
   flex-direction: column;
-  gap: 24px; /* 8pt grid: 20→24 */
+  gap: var(--gap-relaxed);
 }
 
 .login-error {
-  background: #fed7d7;
-  border: 1px solid #feb2b2;
-  border-radius: 8px; /* 8pt grid: ✓ */
-  padding: 16px; /* 8pt grid: 12→16 */
-  color: #c53030;
-  font-size: 14px;
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-medium);
+  padding: var(--space-4);
+  color: var(--color-error);
+  font-size: var(--font-size-subheadline);
 }
 
-/* Google 登入按鈕容器 */
+/* Google Login Button Container */
 .google-button-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--button-height);
   width: 100%;
 }
 
@@ -83,88 +87,105 @@
   width: 100%;
 }
 
-/* 自訂 Google 登入按鈕 */
+/* Custom Google Sign-in Button */
 .custom-google-signin-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--gap-tight);
   width: 100%;
-  min-height: 44px;
-  padding: 12px 24px;
-  background: white;
-  color: #3c4043;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
-  font-size: 16px;
-  font-weight: 500;
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: var(--button-height);
+  padding: var(--space-3) var(--space-6);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-callout);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-primary);
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-subtle);
 }
 
 .custom-google-signin-button:hover {
-  background: #f8f9fa;
-  border-color: #c6c6c6;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-soft);
 }
 
 .custom-google-signin-button:active {
-  background: #f1f3f4;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-subtle);
 }
 
-/* 保留自訂按鈕樣式（備用） */
+/* Custom Login Button (Fallback) */
 .login-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   width: 100%;
-  min-height: 44px;
-  padding: 12px 20px;
-  background: #ff6801;
-  color: white;
+  min-height: var(--button-height);
+  padding: 0 var(--space-5);
+  background: var(--color-accent);
+  color: var(--text-inverse);
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-callout);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-soft);
 }
 
 .login-button:hover:not(:disabled) {
+  background: var(--color-accent-600);
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(255, 104, 1, 0.3);
+  box-shadow: var(--shadow-medium);
 }
 
 .login-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
+  box-shadow: var(--shadow-subtle);
 }
 
 .login-info {
   text-align: center;
-  color: #718096;
+  color: var(--text-secondary);
 }
 
 .info-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px; /* 8pt grid: ✓ */
-  margin-bottom: 16px; /* 8pt grid: 12→16 */
-  font-size: 15px; /* iOS Subheadline */
-  font-weight: 500;
-  letter-spacing: -0.24px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-subheadline);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-subheadline);
 }
 
 .info-text {
-  font-size: 13px; /* iOS Footnote */
-  line-height: 1.4;
+  font-size: var(--font-size-footnote);
+  line-height: var(--line-height-relaxed);
   margin: 0;
-  letter-spacing: -0.08px;
+  letter-spacing: var(--letter-spacing-footnote);
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: var(--space-8);
+  }
+
+  .login-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .login-header h1 {
+    font-size: var(--font-size-title-2);
+  }
 }

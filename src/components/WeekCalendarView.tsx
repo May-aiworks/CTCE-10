@@ -97,14 +97,13 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
     [onEventUpdate]
   );
 
-  // 自訂事件樣式
+  // 自訂事件樣式 - Blue Gray
   const eventStyleGetter = useCallback(() => {
     return {
       style: {
-        backgroundColor: '#667eea',
-        backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        backgroundColor: '#607d8b',
         borderRadius: '4px',
-        opacity: 0.9,
+        opacity: 1,
         color: 'white',
         border: 'none',
         display: 'block',

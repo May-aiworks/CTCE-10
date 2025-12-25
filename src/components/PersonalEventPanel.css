@@ -1,192 +1,199 @@
-/* Personal Event Panel Styles */
+/**
+ * Personal Event Panel - Soft Pantone-inspired UI
+ * Minimal and clean sidebar design
+ */
+
 .personal-event-panel {
-  padding-right: 32px;
-  border-right: 1px solid #e8e8e8;
-  transition: all 0.3s ease;
+  padding-right: var(--space-8);
+  border-right: 1px solid var(--border-light);
+  transition: all var(--transition-normal);
   overflow-y: auto;
-  height: 100%; /* 填滿父容器 */
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
 
 .personal-event-panel.shrink {
-  padding-right: 16px;
+  padding-right: var(--space-4);
 }
 
 /* Drag over state for uncategorizing */
 .personal-event-panel.drag-over {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  border-right: 3px solid #2196f3;
-  box-shadow: inset 0 0 20px rgba(33, 150, 243, 0.15);
+  background: linear-gradient(135deg, var(--color-accent-50) 0%, var(--color-accent-100) 100%);
+  border-right: 3px solid var(--color-accent);
+  box-shadow: inset 0 0 24px var(--color-accent-alpha-20);
 }
 
 .personal-event-panel.drag-over .panel-title::after {
   content: ' - 放開以取消歸類';
-  font-size: 16px;
-  color: #1976d2;
-  font-weight: 600;
+  font-size: var(--font-size-callout);
+  color: var(--color-accent-700);
+  font-weight: var(--font-weight-semibold);
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--gap-relaxed);
 }
 
 .panel-title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--font-size-title-2);
+  font-weight: var(--font-weight-bold);
   margin: 0;
-  color: #1a1a1a;
-  letter-spacing: 0.36px;
+  color: var(--text-primary);
+  letter-spacing: var(--letter-spacing-title-2);
 }
 
 .create-event-button {
-  min-height: 44px;
-  padding: 10px 20px;
-  background: #4285f4;
-  color: white;
+  min-height: var(--button-height);
+  padding: 0 var(--space-5);
+  background: #d4a574;
+  color: var(--text-inverse);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-medium);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
+  font-size: var(--font-size-subheadline);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-normal);
   white-space: nowrap;
+  box-shadow: var(--shadow-subtle);
 }
 
 .create-event-button:hover {
-  background: #3367d6;
+  background: #c89860;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
+  box-shadow: var(--shadow-soft);
 }
 
 .create-event-button:active {
   transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(66, 133, 244, 0.3);
+  box-shadow: var(--shadow-subtle);
 }
 
 .events-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--gap-tight);
   flex: 1;
   overflow-y: auto;
 }
 
 .event-card {
-  background: #e8f0fe;
-  border-radius: 10px;
-  padding: 14px 18px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  background: var(--color-accent-50);
+  border-radius: var(--radius-medium);
+  padding: var(--space-4) var(--space-5);
+  transition: all var(--transition-normal);
   cursor: pointer;
   user-select: none;
+  border: 1px solid var(--color-accent-100);
 }
 
 .event-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15);
+  box-shadow: var(--shadow-soft);
+  background: var(--color-accent-100);
 }
 
 .event-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 6px;
-  letter-spacing: -0.41px;
+  font-size: var(--font-size-subheadline);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+  letter-spacing: var(--letter-spacing-subheadline);
 }
 
 .event-time {
-  font-size: 13px;
-  color: #5f6368;
-  letter-spacing: -0.24px;
+  font-size: var(--font-size-footnote);
+  color: var(--text-secondary);
+  letter-spacing: var(--letter-spacing-footnote);
 }
 
 /* Events Section Grouping */
 .events-section {
-  margin-bottom: 24px;
+  margin-bottom: var(--gap-relaxed);
 }
 
 .section-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 12px 0;
+  font-size: var(--font-size-title-3);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin: 0 0 var(--gap-tight) 0;
   letter-spacing: 0.38px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .empty-section {
-  padding: 24px;
+  padding: var(--space-6);
   text-align: center;
-  color: #999;
-  font-size: 14px;
-  background: #f9f9f9;
-  border-radius: 8px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-subheadline);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-medium);
   font-style: italic;
 }
 
 .section-events {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--gap-tight);
 }
 
 /* Categorized Group Styles */
 .categorized-group {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border-left: 4px solid #ff6801;
+  margin-bottom: var(--gap-relaxed);
+  padding: var(--space-4);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-large);
+  border-left: 3px solid var(--color-accent);
 }
 
 .group-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #ff6801;
-  margin: 0 0 12px 0;
+  font-size: var(--font-size-callout);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
+  margin: 0 0 var(--gap-tight) 0;
   letter-spacing: 0;
 }
 
 .group-events {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--gap-tight);
 }
 
 .categorized-group .event-card {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
 }
 
 /* Empty State */
 .empty-state {
-  padding: 48px 24px;
+  padding: var(--space-12) var(--space-6);
   text-align: center;
-  color: #888;
-  font-size: 16px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-callout);
 }
 
 /* Responsive Design */
 @media (max-width: 1200px) {
   .personal-event-panel.shrink {
-    padding-right: 12px;
+    padding-right: var(--space-3);
   }
 
   .personal-event-panel.shrink .panel-title {
-    font-size: 20px;
+    font-size: var(--font-size-title-3);
   }
 
   .personal-event-panel.shrink .section-title {
-    font-size: 16px;
+    font-size: var(--font-size-callout);
   }
 
   .personal-event-panel.shrink .event-card {
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
   }
 }
 
@@ -194,7 +201,7 @@
   .personal-event-panel {
     padding-right: 0;
     border-right: none;
-    border-bottom: 1px solid #e8e8e8;
-    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: var(--space-12);
   }
 }
